@@ -28,12 +28,13 @@ import de.sciss.guiflitz.AutoView
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.swingplus.Implicits._
-import de.sciss.swingplus.{CloseOperation, ListView, Spinner}
+import de.sciss.swingplus.{ComboBox, CloseOperation, ListView, Spinner}
 import play.api.libs.json.Json
 
 import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._
+import scala.swing.event.SelectionChanged
 import scala.swing.{Label, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
 
 object Unlike {
@@ -48,9 +49,9 @@ object Unlike {
     val mFrame  = new SpinnerNumberModel(1, 1, 3297, 1)
     val ggFrame = new Spinner(mFrame)
 
-    val iw      = 736 // 640
-    val ih      = 491 // 640
-    val img     = new BufferedImage(iw, ih, BufferedImage.TYPE_INT_ARGB)
+    var zoomFactor  = 0.1
+
+    var img     : BufferedImage = null  // updated in `zoom`
 
     val avCfg   = AutoView.Config()
     avCfg.small = true
@@ -76,11 +77,21 @@ object Unlike {
 //    }
 
     val comp: Component = new Component {
-      preferredSize = (iw, ih)
       override protected def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
         g.drawImage(img, 0, 0, peer)
       }
+    }
+
+    def zoom(factor: Double): Unit = {
+      zoomFactor  = factor
+      val global  = mkGlobalConfig()
+      val iw      = (global.width  * factor + 0.5).toInt
+      val ih      = (global.height * factor + 0.5).toInt
+      img         = new BufferedImage(iw, ih, BufferedImage.TYPE_INT_ARGB)
+      comp.preferredSize = (iw, ih)
+      comp.peer.setSize((iw, ih))
+      updateImage()
     }
 
     def updateImage(): Unit = {
@@ -93,6 +104,8 @@ object Unlike {
       comp.repaint()
     }
 
+    zoom(zoomFactor)
+
     globalCfgView.cell.addListener {
       case _ => updateImage()
     }
@@ -103,9 +116,8 @@ object Unlike {
 
     mFrame.addChangeListener(ChangeListener(_ => updateImage()))
 
-    val bp = new BorderPanel {
-      add(comp, BorderPanel.Position.Center)
-    }
+    val bp = new ScrollPane(comp)
+    bp.preferredSize = bp.preferredSize   // fix
 
     def setSituation(sit: Situation): Unit = {
       frameCfgView.cell() = sit // .config
@@ -184,19 +196,18 @@ object Unlike {
     }
     ggSnapshots.background = Color.darkGray
     ggSnapshots.foreground = Color.white
-    lazy val ggMoveSnapshot: Button = Button("Move") {
-//      ggSnapshots.selection.indices.headOption.foreach { row =>
-//        val old = mSnapshots(row)
-//        val opt = OptionPane.textInput("Key Frame:", initial = initFrame.toString)
-//        opt.show(None, title = "Move Snapshot").foreach { str =>
-//          val frame = str.trim.toInt
-//          assert(row == mSnapshots.indexOf(old))
-//          mSnapshots.remove(row)
-//          val i0    = mSnapshots.indexWhere(_.index >= frame)
-//          val i     = if (i0 < 0) mSnapshots.size else i0
-//          mSnapshots.insert(i, old.copy(index = frame))
-//        }
-//      }
+    lazy val ggMoveSnapshotUp: Button = Button("Up") {
+      ggSnapshots.selection.indices.toList.filter(_ > 0).sorted.foreach { row =>
+        val s = mSnapshots.remove(row)
+        mSnapshots.insert(row - 1, s)
+      }
+    }
+    lazy val ggMoveSnapshotDown: Button = Button("Down") {
+      val szM = mSnapshots.size - 1
+      ggSnapshots.selection.indices.toList.filter(_ < szM).sorted.reverse.foreach { row =>
+        val s = mSnapshots.remove(row)
+        mSnapshots.insert(row + 1, s)
+      }
     }
     lazy val ggRemoveSnapshot: Button = Button("Remove") {
       ggSnapshots.selection.indices.toList.sorted.reverse.foreach { row =>
@@ -212,9 +223,19 @@ object Unlike {
 
     lazy val pSnapshots: Component = new ScrollPane(ggSnapshots)
 
+    lazy val ggZoom: ComboBox[Int] = new ComboBox(10 to 100 by 10) {
+      listenTo(selection)
+      reactions += {
+        case SelectionChanged(_) => zoom(selection.item * 0.01)
+      }
+    }
+
     lazy val pBottom: Component = new BoxPanel(Orientation.Vertical) {
       contents += new FlowPanel(
-        new Label("Key Frames:"), ggAddSnapshot, ggMoveSnapshot, ggRecallSnapshot, HStrut(16), ggRemoveSnapshot)
+        new Label("Zoom:"), ggZoom, HStrut(16),
+        new Label("Key Frames:"), ggAddSnapshot, ggMoveSnapshotUp, ggMoveSnapshotDown,
+        ggRecallSnapshot, HStrut(16), ggRemoveSnapshot
+      )
     }
 
     lazy val pRight: BoxPanel = new BoxPanel(Orientation.Vertical) {
@@ -225,26 +246,16 @@ object Unlike {
     }
 
     val split = new BorderPanel {
-      add(comp /* v.component */, BorderPanel.Position.North )
-      add(pSnapshots , BorderPanel.Position.Center)
-      // add(Swing.VGlue, BorderPanel.Position.Center)
-      add(pBottom    , BorderPanel.Position.South )
+      add(bp        , BorderPanel.Position.North )
+      add(pSnapshots, BorderPanel.Position.Center)
+      add(pBottom   , BorderPanel.Position.South )
     }
 
     val fr = new Frame { self =>
       title = "Unlike"
-//      contents = new BorderPanel {
-//        add(bp, BorderPanel.Position.Center)
-//        add(new BoxPanel(Orientation.Vertical) {
-//          contents += globalCfgView .component
-//          contents += frameCfgView  .component
-//          contents += new FlowPanel(ggFrame)
-//        }, BorderPanel.Position.East)
-//      }
       contents  = new BorderPanel {
-        add(split   , BorderPanel.Position.Center)
-        // add(pBottom , BorderPanel.Position.South)
-        add(pRight  , BorderPanel.Position.East)
+        add(split , BorderPanel.Position.Center)
+        add(pRight, BorderPanel.Position.East)
       }
       resizable = false
       menuBar = mb
