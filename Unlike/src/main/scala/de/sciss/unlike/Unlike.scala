@@ -14,28 +14,28 @@
 
 package de.sciss.unlike
 
-import java.awt.Color
+import java.awt.{TexturePaint, Paint, Color}
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.{FileInputStream, FileOutputStream}
 import javax.imageio.ImageIO
-import javax.swing.{KeyStroke, SpinnerNumberModel}
+import javax.swing.KeyStroke
 
 import com.jhlabs.image.NoiseFilter
+import com.mortennobel.imagescaling.ResampleOp
 import de.sciss.desktop.{FileDialog, OptionPane}
 import de.sciss.file._
 import de.sciss.guiflitz.AutoView
 import de.sciss.processor.Processor
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.swingplus.Implicits._
-import de.sciss.swingplus.{ComboBox, CloseOperation, ListView, Spinner}
-import play.api.libs.json.Json
+import de.sciss.swingplus.{CloseOperation, ComboBox, ListView}
 
 import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._
 import scala.swing.event.SelectionChanged
-import scala.swing.{Label, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
+import scala.swing.{Rectangle, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
 
 object Unlike {
   private val fBase = userHome / "Pictures" /"2015"/"12"/"07"
@@ -46,8 +46,8 @@ object Unlike {
 //    val hAxis2  = new Axis(Orientation.Horizontal)
 //    val vAxis2  = new Axis(Orientation.Vertical  )
 
-    val mFrame  = new SpinnerNumberModel(1, 1, 3297, 1)
-    val ggFrame = new Spinner(mFrame)
+    // val mFrame  = new SpinnerNumberModel(1, 1, 3297, 1)
+    // val ggFrame = new Spinner(mFrame)
 
     var zoomFactor  = 0.1
 
@@ -56,7 +56,7 @@ object Unlike {
     val avCfg   = AutoView.Config()
     avCfg.small = true
 
-    val frameCfg0   = Situation(index = 9227) // FrameConfig() // (id = 1, firstFrame = 231, lastFrame = 1006 - 1 /* 1780 */, thresh = 127, sizeIn = 320)
+    val frameCfg0   = Situation(index = 9227)
     val globalCfg0  = GlobalConfig()
 
     val frameCfgView    = AutoView(frameCfg0 , avCfg)
@@ -76,10 +76,34 @@ object Unlike {
 //      vAxis2.maximum  = vAxis1.maximum
 //    }
 
+    // the one for which `updateImage` has been rendered
+    var imageFrameConfig = mkFrameConfig()
+
+    val pntChecker: Paint = {
+      val sizeH = 32
+      val img = new BufferedImage(sizeH << 1, sizeH << 1, BufferedImage.TYPE_INT_ARGB)
+
+      for (x <- 0 until img.getWidth) {
+        for (y <- 0 until img.getHeight) {
+          img.setRGB(x, y, if (((x / sizeH) ^ (y / sizeH)) == 0) 0xFF9F9F9F else 0xFF7F7F7F)
+        }
+      }
+
+      new TexturePaint(img, new Rectangle(0, 0, img.getWidth, img.getHeight))
+    }
+
     val comp: Component = new Component {
+      // opaque = false
       override protected def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
-        g.drawImage(img, 0, 0, peer)
+        val atOrig = g.getTransform
+        val atImg = AffineTransform.getScaleInstance(imageFrameConfig.scale, imageFrameConfig.scale)
+        atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
+        if (zoomFactor != 1.0) g.scale(zoomFactor, zoomFactor)
+        g.setPaint(pntChecker)
+        g.fillRect(0, 0, math.ceil(peer.getWidth / zoomFactor).toInt, math.ceil(peer.getHeight / zoomFactor).toInt)
+        g.drawRenderedImage(img, atImg)
+        g.setTransform(atOrig)
       }
     }
 
@@ -88,33 +112,42 @@ object Unlike {
       val global  = mkGlobalConfig()
       val iw      = (global.width  * factor + 0.5).toInt
       val ih      = (global.height * factor + 0.5).toInt
-      img         = new BufferedImage(iw, ih, BufferedImage.TYPE_INT_ARGB)
+      // img         = new BufferedImage(iw, ih, BufferedImage.TYPE_INT_ARGB)
       comp.preferredSize = (iw, ih)
-      comp.peer.setSize((iw, ih))
-      updateImage()
-    }
-
-    def updateImage(): Unit = {
-      val img1  = mkImage(mkGlobalConfig(), mkFrameConfig() /* mFrame.getNumber.intValue() */)
-      val g     = img.createGraphics()
-      val sx    = img.getWidth .toDouble / img1.getWidth
-      val sy    = img.getHeight.toDouble / img1.getHeight
-      g.drawImage(img1, AffineTransform.getScaleInstance(sx, sy), null)
-      g.dispose()
+      comp.peer.setSize   ((iw, ih))
+      // updateImage()
       comp.repaint()
     }
 
-    zoom(zoomFactor)
+    def updateZoom(): Unit = zoom(zoomFactor)
+
+    def updateImage(): Unit = {
+      val newFrameConfig  = mkFrameConfig()
+      img                 = mkImage(mkGlobalConfig(), newFrameConfig)
+      imageFrameConfig    = newFrameConfig
+      comp.repaint()
+    }
+
+    updateImage()
+    updateZoom()
 
     globalCfgView.cell.addListener {
-      case _ => updateImage()
+      case _ =>
+        updateImage()
+        updateZoom()
     }
 
     frameCfgView.cell.addListener {
-      case _ => updateImage()
+      case upd =>
+        if (upd.index != imageFrameConfig.index) {
+          updateImage()
+        } else {
+          imageFrameConfig = upd
+          comp.repaint()
+        }
     }
 
-    mFrame.addChangeListener(ChangeListener(_ => updateImage()))
+    // mFrame.addChangeListener(ChangeListener(_ => updateImage()))
 
     val bp = new ScrollPane(comp)
     bp.preferredSize = bp.preferredSize   // fix
@@ -265,7 +298,7 @@ object Unlike {
     fr.defaultCloseOperation = CloseOperation.Exit
 
     // ggRender.doClick()
-    updateImage()
+    // updateImage()
   }
 
 //  def renderImage(config: Config, frame: Int, f: File): Processor[Unit] = {
@@ -298,8 +331,8 @@ object Unlike {
 
   def mkImage(global: GlobalConfig, sit: Situation): BufferedImage = {
     val imgCrop   = readFrame(sit.index)
-    val imgUp     = imgCrop // mkResize (config, imgCrop)
-    val imgNoise  = mkNoise  (global, imgUp)
+    val imgUp     = mkResize (global, imgCrop)
+    val imgNoise  = mkNoise  (global, imgUp  )
     imgNoise // mkThresh(config, imgNoise)
   }
 
@@ -318,11 +351,10 @@ object Unlike {
 //    imgCrop
   }
   
-//  def mkResize(config: Config, in: BufferedImage): BufferedImage = {
-////    import config.sizeOut
-////    val resizeOp  = new ResampleOp(sizeOut, sizeOut)
-////    resizeOp.filter(in, null)
-//  }
+  def mkResize(global: GlobalConfig, in: BufferedImage): BufferedImage = {
+    val resizeOp  = new ResampleOp(global.width, global.height)
+    resizeOp.filter(in, null)
+  }
   
   def mkNoise(global: GlobalConfig, in: BufferedImage): BufferedImage = if (global.noise <= 0) in else {
     val noiseOp = new NoiseFilter
