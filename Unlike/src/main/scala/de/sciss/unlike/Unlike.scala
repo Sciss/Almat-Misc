@@ -14,9 +14,9 @@
 
 package de.sciss.unlike
 
-import java.awt.{TexturePaint, Paint, Color}
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
+import java.awt.{Color, Paint, TexturePaint}
 import java.io.{FileInputStream, FileOutputStream}
 import javax.imageio.ImageIO
 import javax.swing.KeyStroke
@@ -35,7 +35,7 @@ import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._
 import scala.swing.event.SelectionChanged
-import scala.swing.{Rectangle, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
+import scala.swing.{ToggleButton, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, Rectangle, ScrollPane}
 
 object Unlike {
   private val fBase = userHome / "Pictures" /"2015"/"12"/"07"
@@ -92,17 +92,29 @@ object Unlike {
       new TexturePaint(img, new Rectangle(0, 0, img.getWidth, img.getHeight))
     }
 
+    var diff = Option.empty[(Situation, BufferedImage)]
+
     val comp: Component = new Component {
-      // opaque = false
+      opaque = true
       override protected def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
         val atOrig = g.getTransform
-        val atImg = AffineTransform.getScaleInstance(imageFrameConfig.scale, imageFrameConfig.scale)
-        atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
         if (zoomFactor != 1.0) g.scale(zoomFactor, zoomFactor)
         g.setPaint(pntChecker)
         g.fillRect(0, 0, math.ceil(peer.getWidth / zoomFactor).toInt, math.ceil(peer.getHeight / zoomFactor).toInt)
+        diff.foreach { case (sitD, imgD) =>
+          val scaleD = sitD.scale * 0.01
+          val atImgD = AffineTransform.getScaleInstance(scaleD, scaleD)
+          atImgD.translate(sitD.translate.x, sitD.translate.y)
+          g.drawRenderedImage(imgD, atImgD)
+          g.setXORMode(Color.white)
+        }
+        val scaleI = imageFrameConfig.scale * 0.01
+        val atImg = AffineTransform.getScaleInstance(scaleI, scaleI)
+        // atImg.rotate()
+        atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
         g.drawRenderedImage(img, atImg)
+        g.setPaintMode()
         g.setTransform(atOrig)
       }
     }
@@ -217,15 +229,10 @@ object Unlike {
     lazy val ggSnapshots: ListView[Situation] = new ListView(mSnapshots)
     ggSnapshots.visibleRowCount = 6
     lazy val ggAddSnapshot: Button = Button("Add") {
-      // val sit       = mkSituation()
-      val initFrame = mSnapshots.lastOption.map(_.index + 250).getOrElse(0)
-      val opt = OptionPane.textInput("Index:", initial = initFrame.toString)
-      opt.show(None, title = "Add Snapshot").foreach { str =>
-        val index = str.trim.toInt
-        val i0    = mSnapshots.indexWhere(_.index >= index)
-        val i     = if (i0 < 0) mSnapshots.size else i0
-        mSnapshots.insert(i, Situation(index))
-      }
+      val sit   = mkFrameConfig()
+      val i0    = mSnapshots.indexWhere(_.index >= sit.index)
+      val i     = if (i0 < 0) mSnapshots.size else i0
+      mSnapshots.insert(i, sit)
     }
     ggSnapshots.background = Color.darkGray
     ggSnapshots.foreground = Color.white
@@ -247,10 +254,29 @@ object Unlike {
         mSnapshots.remove(row)
       }
     }
+
     lazy val ggRecallSnapshot: Button = Button("Recall") {
       ggSnapshots.selection.indices.headOption.foreach { row =>
         val sit = mSnapshots(row) // .situation
         setSituation(sit)
+      }
+    }
+
+    lazy val ggDiff: ToggleButton = new ToggleButton(null) {
+      action = Action("Diff") {
+        if (selected) {
+          ggSnapshots.selection.indices.headOption.fold[Unit] {
+            selected = false
+          } { row =>
+            val sit  = mSnapshots(row)
+            val img1 = mkImage(mkGlobalConfig(), sit)
+            diff     = Some((sit, img1))
+            comp.repaint()
+          }
+        } else {
+          diff = None
+          comp.repaint()
+        }
       }
     }
 
@@ -267,7 +293,8 @@ object Unlike {
       contents += new FlowPanel(
         new Label("Zoom:"), ggZoom, HStrut(16),
         new Label("Key Frames:"), ggAddSnapshot, ggMoveSnapshotUp, ggMoveSnapshotDown,
-        ggRecallSnapshot, HStrut(16), ggRemoveSnapshot
+        ggRecallSnapshot, HStrut(16), ggRemoveSnapshot, HStrut(16),
+        ggDiff
       )
     }
 
