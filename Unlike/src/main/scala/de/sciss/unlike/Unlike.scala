@@ -21,7 +21,7 @@ import java.io.{FileInputStream, FileOutputStream}
 import javax.imageio.ImageIO
 import javax.swing.KeyStroke
 
-import com.jhlabs.image.NoiseFilter
+import com.jhlabs.image.{PerspectiveFilter, NoiseFilter}
 import com.mortennobel.imagescaling.ResampleOp
 import de.sciss.desktop.{FileDialog, OptionPane}
 import de.sciss.file._
@@ -93,6 +93,7 @@ object Unlike {
     }
 
     var diff = Option.empty[(Situation, BufferedImage)]
+    new PerspectiveFilter()
 
     val comp: Component = new Component {
       opaque = true
@@ -104,14 +105,19 @@ object Unlike {
         g.fillRect(0, 0, math.ceil(peer.getWidth / zoomFactor).toInt, math.ceil(peer.getHeight / zoomFactor).toInt)
         diff.foreach { case (sitD, imgD) =>
           val scaleD = sitD.scale * 0.01
-          val atImgD = AffineTransform.getScaleInstance(scaleD, scaleD)
+          val rotD    = sitD.rotate * math.Pi / 180
+          val atImgD  = new AffineTransform()
+          atImgD.rotate(rotD, imgD.getWidth, imgD.getHeight)
+          atImgD.scale(scaleD, scaleD)
           atImgD.translate(sitD.translate.x, sitD.translate.y)
           g.drawRenderedImage(imgD, atImgD)
           g.setXORMode(Color.white)
         }
-        val scaleI = imageFrameConfig.scale * 0.01
-        val atImg = AffineTransform.getScaleInstance(scaleI, scaleI)
-        // atImg.rotate()
+        val scaleI  = imageFrameConfig.scale * 0.01
+        val rotI    = imageFrameConfig.rotate * math.Pi / 180
+        val atImg   = new AffineTransform()
+        atImg.rotate(rotI, img.getWidth, img.getHeight)
+        atImg.scale(scaleI, scaleI)
         atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
         g.drawRenderedImage(img, atImg)
         g.setPaintMode()
