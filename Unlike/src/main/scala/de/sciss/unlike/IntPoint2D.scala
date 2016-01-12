@@ -14,6 +14,9 @@
 
 package de.sciss.unlike
 
+import de.sciss.play.json.AutoFormat
+import play.api.libs.json.Format
+
 trait IntPoint2DLike {
   def x: Int
   def y: Int
@@ -68,6 +71,9 @@ trait IntPoint2DLike {
   }
 }
 
+object IntPoint2D {
+  implicit val format: Format[IntPoint2D] = AutoFormat[IntPoint2D]
+}
 final case class IntPoint2D(x: Int, y: Int) extends IntPoint2DLike {
   def +(p: IntPoint2D) = IntPoint2D(x + p.x, y + p.y)
   def -(p: IntPoint2D) = IntPoint2D(x - p.x, y - p.y)

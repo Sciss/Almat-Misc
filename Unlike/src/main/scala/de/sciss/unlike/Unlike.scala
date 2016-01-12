@@ -14,6 +14,7 @@
 
 package de.sciss.unlike
 
+import java.awt.Color
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.{FileInputStream, FileOutputStream}
@@ -33,7 +34,7 @@ import play.api.libs.json.Json
 import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._
-import scala.swing.{Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
+import scala.swing.{Label, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Menu, MenuBar, MenuItem, Orientation, ScrollPane}
 
 object Unlike {
   private val fBase = userHome / "Pictures" /"2015"/"12"/"07"
@@ -47,18 +48,21 @@ object Unlike {
     val mFrame  = new SpinnerNumberModel(1, 1, 3297, 1)
     val ggFrame = new Spinner(mFrame)
 
-    val iw      = 640
-    val ih      = 640
+    val iw      = 736 // 640
+    val ih      = 491 // 640
     val img     = new BufferedImage(iw, ih, BufferedImage.TYPE_INT_ARGB)
 
     val avCfg   = AutoView.Config()
     avCfg.small = true
 
-    val cfg0    = Config() // (id = 1, firstFrame = 231, lastFrame = 1006 - 1 /* 1780 */, thresh = 127, sizeIn = 320)
+    val frameCfg0   = Situation(index = 9227) // FrameConfig() // (id = 1, firstFrame = 231, lastFrame = 1006 - 1 /* 1780 */, thresh = 127, sizeIn = 320)
+    val globalCfg0  = GlobalConfig()
 
-    val cfgView  = AutoView(cfg0, avCfg)
+    val frameCfgView    = AutoView(frameCfg0 , avCfg)
+    val globalCfgView   = AutoView(globalCfg0, avCfg)
 
-    def mkSituation(): Config = cfgView.value
+    def mkFrameConfig (): Situation    = frameCfgView .value
+    def mkGlobalConfig(): GlobalConfig = globalCfgView.value
 
 //    def updateAxes(cfg: Config): Unit = {
 //      hAxis1.minimum  = cfg.aMin
@@ -80,7 +84,7 @@ object Unlike {
     }
 
     def updateImage(): Unit = {
-      val img1  = mkImage(cfgView.value, 9227 /* mFrame.getNumber.intValue() */)
+      val img1  = mkImage(mkGlobalConfig(), mkFrameConfig() /* mFrame.getNumber.intValue() */)
       val g     = img.createGraphics()
       val sx    = img.getWidth .toDouble / img1.getWidth
       val sy    = img.getHeight.toDouble / img1.getHeight
@@ -89,7 +93,11 @@ object Unlike {
       comp.repaint()
     }
 
-    cfgView.cell.addListener {
+    globalCfgView.cell.addListener {
+      case _ => updateImage()
+    }
+
+    frameCfgView.cell.addListener {
       case _ => updateImage()
     }
 
@@ -100,7 +108,7 @@ object Unlike {
     }
 
     def setSituation(sit: Situation): Unit = {
-      cfgView.cell()    = sit.config
+      frameCfgView.cell() = sit // .config
     }
 
     val mb = new MenuBar {
@@ -115,9 +123,10 @@ object Unlike {
               val arr = new Array[Byte](fin.available())
               fin.read(arr)
               fin.close()
-              val jsn = Json.parse(new String(arr, "UTF-8"))
-              val res = Json.fromJson[Config](jsn).get
-              cfgView.cell() = res // .lya
+              ???
+//              val jsn = Json.parse(new String(arr, "UTF-8"))
+//              val res = Json.fromJson[Config](jsn).get
+//              cfgView.cell() = res // .lya
             }
           }
         })
@@ -125,18 +134,20 @@ object Unlike {
         contents += new MenuItem(new Action("Export Image...") {
           accelerator = Some(KeyStroke.getKeyStroke("ctrl S"))
           def apply(): Unit = {
-            val sit = mkSituation()
+            val sit = mkFrameConfig()
             FileDialog.save(init = Some(userHome / s"collat_${sit.hashCode.toHexString}.png")).show(None).foreach { f =>
-              val pFull = renderImage(sit, frame = mFrame.getNumber.intValue(), f = f.replaceExt("png"))
-              val futTail = pFull.map { _ =>
-                val json = Config.format.writes(sit).toString()
-                blocking {
-                  val jsonOut = new FileOutputStream(f.replaceExt("json"))
-                  jsonOut.write(json.getBytes("UTF-8"))
-                  jsonOut.close()
-                }
-              }
-              mkProgressDialog("Exporting...", pFull, futTail)
+              ???
+//              val pFull = renderImage(sit, frame = mFrame.getNumber.intValue(), f = f.replaceExt("png"))
+//              val futTail = pFull.map { _ =>
+//                ???
+////                val json = Config.format.writes(sit).toString()
+////                blocking {
+////                  val jsonOut = new FileOutputStream(f.replaceExt("json"))
+////                  jsonOut.write(json.getBytes("UTF-8"))
+////                  jsonOut.close()
+////                }
+//              }
+//              mkProgressDialog("Exporting...", pFull, futTail)
             }
           }
         })
@@ -145,11 +156,12 @@ object Unlike {
           accelerator = Some(KeyStroke.getKeyStroke("ctrl shift S"))
 
           def apply(): Unit = {
-            val cfg = mkSituation()
+            val cfg = mkFrameConfig()
             val initName = cfg.hashCode.toHexString
             FileDialog.save(init = Some(userHome / s"collat_$initName.png")).show(None).foreach { f =>
-              val pFull = renderImageSequence(cfg, fOut = f)
-              mkProgressDialog("Exporting...", pFull, pFull)
+              ???
+//              val pFull = renderImageSequence(cfg, fOut = f)
+//              mkProgressDialog("Exporting...", pFull, pFull)
             }
           }
         })
@@ -170,9 +182,11 @@ object Unlike {
         mSnapshots.insert(i, Situation(index))
       }
     }
-//    lazy val ggMoveSnapshot: Button = Button("Move") {
+    ggSnapshots.background = Color.darkGray
+    ggSnapshots.foreground = Color.white
+    lazy val ggMoveSnapshot: Button = Button("Move") {
 //      ggSnapshots.selection.indices.headOption.foreach { row =>
-//        val old @ Situation(initFrame, sit) = mSnapshots(row)
+//        val old = mSnapshots(row)
 //        val opt = OptionPane.textInput("Key Frame:", initial = initFrame.toString)
 //        opt.show(None, title = "Move Snapshot").foreach { str =>
 //          val frame = str.trim.toInt
@@ -180,10 +194,10 @@ object Unlike {
 //          mSnapshots.remove(row)
 //          val i0    = mSnapshots.indexWhere(_.index >= frame)
 //          val i     = if (i0 < 0) mSnapshots.size else i0
-//          mSnapshots.insert(i, Situation(frame, sit))
+//          mSnapshots.insert(i, old.copy(index = frame))
 //        }
 //      }
-//    }
+    }
     lazy val ggRemoveSnapshot: Button = Button("Remove") {
       ggSnapshots.selection.indices.toList.sorted.reverse.foreach { row =>
         mSnapshots.remove(row)
@@ -198,14 +212,39 @@ object Unlike {
 
     lazy val pSnapshots: Component = new ScrollPane(ggSnapshots)
 
+    lazy val pBottom: Component = new BoxPanel(Orientation.Vertical) {
+      contents += new FlowPanel(
+        new Label("Key Frames:"), ggAddSnapshot, ggMoveSnapshot, ggRecallSnapshot, HStrut(16), ggRemoveSnapshot)
+    }
+
+    lazy val pRight: BoxPanel = new BoxPanel(Orientation.Vertical) {
+      contents += VStrut(16)  // will be replaced
+      contents += globalCfgView .component
+      contents += frameCfgView  .component
+      // contents += ggText
+    }
+
+    val split = new BorderPanel {
+      add(comp /* v.component */, BorderPanel.Position.North )
+      add(pSnapshots , BorderPanel.Position.Center)
+      // add(Swing.VGlue, BorderPanel.Position.Center)
+      add(pBottom    , BorderPanel.Position.South )
+    }
+
     val fr = new Frame { self =>
-      title = "Collateral"
-      contents = new BorderPanel {
-        add(bp, BorderPanel.Position.Center)
-        add(new BoxPanel(Orientation.Vertical) {
-          contents += cfgView .component
-          contents += new FlowPanel(ggFrame)
-        }, BorderPanel.Position.East)
+      title = "Unlike"
+//      contents = new BorderPanel {
+//        add(bp, BorderPanel.Position.Center)
+//        add(new BoxPanel(Orientation.Vertical) {
+//          contents += globalCfgView .component
+//          contents += frameCfgView  .component
+//          contents += new FlowPanel(ggFrame)
+//        }, BorderPanel.Position.East)
+//      }
+      contents  = new BorderPanel {
+        add(split   , BorderPanel.Position.Center)
+        // add(pBottom , BorderPanel.Position.South)
+        add(pRight  , BorderPanel.Position.East)
       }
       resizable = false
       menuBar = mb
@@ -218,67 +257,65 @@ object Unlike {
     updateImage()
   }
 
-  def renderImage(config: Config, frame: Int, f: File): Processor[Unit] = {
-    val res = new RenderImage(config, frame = frame, f = f)
-    res.start()
-    res
-  }
-
-  private final class RenderImage(config: Config, frame: Int, f: File)
-    extends ProcessorImpl[Unit, Processor[Unit]] with Processor[Unit] {
-
-    protected def body(): Unit = blocking {
-      val fOut  = f.replaceExt("png")
-      if (!fOut.exists()) {
-        val img = mkImage(config, index = frame)
-        ImageIO.write(img, "png", fOut)
-      }
-      progress = 1.0
-    }
-  }
-
-  def renderImageSequence(config: Config, fOut: File): Processor[Unit] = {
-    ???
-//    import config.resampleWindow
-//    require(resampleWindow % 2 == 1, s"resampleWindow ($resampleWindow) must be odd")
-//    val res = new RenderImageSequence(config = config, fOut = fOut)
+//  def renderImage(config: Config, frame: Int, f: File): Processor[Unit] = {
+//    val res = new RenderImage(config, frame = frame, f = f)
 //    res.start()
 //    res
-  }
+//  }
 
-  def mkImage(config: Config, index: Int): BufferedImage = {
-    val imgCrop   = readFrame(config, index)
+//  private final class RenderImage(config: Config, frame: Int, f: File)
+//    extends ProcessorImpl[Unit, Processor[Unit]] with Processor[Unit] {
+//
+//    protected def body(): Unit = blocking {
+//      val fOut  = f.replaceExt("png")
+//      if (!fOut.exists()) {
+//        val img = mkImage(config, index = frame)
+//        ImageIO.write(img, "png", fOut)
+//      }
+//      progress = 1.0
+//    }
+//  }
+
+//  def renderImageSequence(config: Config, fOut: File): Processor[Unit] = {
+//    ???
+////    import config.resampleWindow
+////    require(resampleWindow % 2 == 1, s"resampleWindow ($resampleWindow) must be odd")
+////    val res = new RenderImageSequence(config = config, fOut = fOut)
+////    res.start()
+////    res
+//  }
+
+  def mkImage(global: GlobalConfig, sit: Situation): BufferedImage = {
+    val imgCrop   = readFrame(sit.index)
     val imgUp     = imgCrop // mkResize (config, imgCrop)
-    val imgNoise  = mkNoise  (config, imgUp)
+    val imgNoise  = mkNoise  (global, imgUp)
     imgNoise // mkThresh(config, imgNoise)
   }
 
-  def cropImage2(config: Config, in: BufferedImage): BufferedImage = {
-    ???
-//    import config.sizeIn
-//    cropImage(in, 145 + (430 - sizeIn)/2, 20 + (430 - sizeIn)/2, sizeIn, sizeIn)
-  }
+//  def cropImage2(config: Config, in: BufferedImage): BufferedImage = {
+////    import config.sizeIn
+////    cropImage(in, 145 + (430 - sizeIn)/2, 20 + (430 - sizeIn)/2, sizeIn, sizeIn)
+//  }
 
-  def mkFIn(config: Config, index: Int): File = fBase / s"DSC_$index.JPG"
+  def mkFIn(index: Int): File = fBase / s"DSC_$index.JPG"
 
-  def readFrame(config: Config, index: Int): BufferedImage = {
-    val fIn1      = mkFIn(config, index)
+  def readFrame(index: Int): BufferedImage = {
+    val fIn1      = mkFIn(index)
     val imgIn     = ImageIO.read(fIn1)
     imgIn
 //    val imgCrop   = cropImage2(config, imgIn)
 //    imgCrop
   }
   
-  def mkResize(config: Config, in: BufferedImage): BufferedImage = {
-    ???
-//    import config.sizeOut
-//    val resizeOp  = new ResampleOp(sizeOut, sizeOut)
-//    resizeOp.filter(in, null)
-  }
+//  def mkResize(config: Config, in: BufferedImage): BufferedImage = {
+////    import config.sizeOut
+////    val resizeOp  = new ResampleOp(sizeOut, sizeOut)
+////    resizeOp.filter(in, null)
+//  }
   
-  def mkNoise(config: Config, in: BufferedImage): BufferedImage = if (config.noise <= 0) in else {
+  def mkNoise(global: GlobalConfig, in: BufferedImage): BufferedImage = if (global.noise <= 0) in else {
     val noiseOp = new NoiseFilter
-    noiseOp.setAmount(config.noise)
+    noiseOp.setAmount(global.noise)
     noiseOp.setMonochrome(true)
     noiseOp.filter(in, null)
   }
@@ -291,13 +328,13 @@ object Unlike {
 //      threshOp.filter(in, out1)
 //    }
 
-  private final class RenderImageSequence(config: Config, fOut: File)
+  private final class RenderImageSequence(global: GlobalConfig, fOut: File)
     extends ProcessorImpl[Unit, RenderImageSequence] with Processor[Unit] {
 
     protected def body(): Unit = blocking {
       val jsonF = fOut.replaceExt("json")
       if (!jsonF.exists()) blocking {
-        val json    = Config.format.writes(config).toString()
+        val json    = GlobalConfig.format.writes(global).toString()
         val jsonOut = new FileOutputStream(jsonF)
         jsonOut.write(json.getBytes("UTF-8"))
         jsonOut.close()
