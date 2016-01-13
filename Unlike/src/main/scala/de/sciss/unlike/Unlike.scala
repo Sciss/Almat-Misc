@@ -92,8 +92,8 @@ object Unlike {
       new TexturePaint(img, new Rectangle(0, 0, img.getWidth, img.getHeight))
     }
 
-    var diff = Option.empty[(Situation, BufferedImage)]
-    new PerspectiveFilter()
+    var diff  = Option.empty[(Situation, BufferedImage)]
+    val psp   = new PerspectiveFilter(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
 
     val comp: Component = new Component {
       opaque = true
@@ -104,22 +104,50 @@ object Unlike {
         g.setPaint(pntChecker)
         g.fillRect(0, 0, math.ceil(peer.getWidth / zoomFactor).toInt, math.ceil(peer.getHeight / zoomFactor).toInt)
         diff.foreach { case (sitD, imgD) =>
-          val scaleD = sitD.scale * 0.01
-          val rotD    = sitD.rotate * math.Pi / 180
-          val atImgD  = new AffineTransform()
-          atImgD.rotate(rotD, imgD.getWidth, imgD.getHeight)
-          atImgD.scale(scaleD, scaleD)
-          atImgD.translate(sitD.translate.x, sitD.translate.y)
-          g.drawRenderedImage(imgD, atImgD)
+          import sitD._
+          if (hasTransform) {
+            val imgDW = imgD.getWidth
+            val imgDH = imgD.getHeight
+            psp.setCorners(pTopLeftDx    .toFloat        , pTopLeftDy    .toFloat,
+              pTopRightDx   .toFloat + imgDW, pTopRightDy   .toFloat,
+              pBottomRightDx.toFloat + imgDW, pBottomRightDy.toFloat + imgDH,
+              pBottomLeftDx .toFloat        , pBottomLeftDy .toFloat + imgDH)
+            //          val scaleD  = sitD.scale * 0.01
+            g.drawImage(imgD, psp, psp.getOriginX.toInt, psp.getOriginY.toInt)
+          } else {
+            g.drawImage(imgD, 0, 0, null)
+          }
+//          val rotD    = sitD.rotate * math.Pi / 180
+//          val atImgD  = new AffineTransform()
+//          atImgD.rotate(rotD, imgD.getWidth, imgD.getHeight)
+//          atImgD.scale(scaleD, scaleD)
+//          atImgD.translate(sitD.translate.x, sitD.translate.y)
+          // g.drawRenderedImage(imgD, atImgD)
           g.setXORMode(Color.white)
         }
-        val scaleI  = imageFrameConfig.scale * 0.01
-        val rotI    = imageFrameConfig.rotate * math.Pi / 180
-        val atImg   = new AffineTransform()
-        atImg.rotate(rotI, img.getWidth, img.getHeight)
-        atImg.scale(scaleI, scaleI)
-        atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
-        g.drawRenderedImage(img, atImg)
+        val sit = imageFrameConfig
+        import sit._
+        if (hasTransform) {
+          val imgW = img.getWidth
+          val imgH = img.getHeight
+          psp.setCorners(pTopLeftDx    .toFloat       , pTopLeftDy    .toFloat,
+            pTopRightDx   .toFloat + imgW, pTopRightDy   .toFloat,
+            pBottomRightDx.toFloat + imgW, pBottomRightDy.toFloat + imgH,
+            pBottomLeftDx .toFloat       , pBottomLeftDy .toFloat + imgH)
+          val offX = math.min(0, math.min(pTopLeftDx, pBottomLeftDx))
+          val offY = math.min(0, math.min(pTopLeftDy, pTopRightDy  ))
+          println(s"($offX, $offY)")
+          g.drawImage(img, psp, offX, offY)
+        } else {
+          g.drawImage(img, 0, 0, null)
+        }
+//        val scaleI  = imageFrameConfig.scale * 0.01
+//        val rotI    = imageFrameConfig.rotate * math.Pi / 180
+//        val atImg   = new AffineTransform()
+//        atImg.rotate(rotI, img.getWidth, img.getHeight)
+//        atImg.scale(scaleI, scaleI)
+//        atImg.translate(imageFrameConfig.translate.x, imageFrameConfig.translate.y)
+//        g.drawRenderedImage(img, atImg)
         g.setPaintMode()
         g.setTransform(atOrig)
       }
