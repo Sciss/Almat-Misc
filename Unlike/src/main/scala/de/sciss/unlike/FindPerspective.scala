@@ -10,9 +10,17 @@ import scala.collection.breakOut
 import scala.concurrent.blocking
 
 object FindPerspective extends ProcessorFactory {
+
+  /** @param pathA          path of the 'original' image
+    * @param pathB          path of the image to find the transform for
+    * @param maxDistance    maximum 'radius' for corners to move in perspective distortion
+    * @param initCoarse     maximum coarseness (step-size)
+    * @param rounds         number of iterations to refine results
+    */
   case class Config(pathA: File, pathB: File, maxDistance: Int = 100, initCoarse: Int = 32, rounds: Int = 4)
 
-  case class Product(topLeft: IntPoint2D, topRight: IntPoint2D, bottomRight: IntPoint2D, bottomLeft: IntPoint2D)
+  case class Product(topLeft: IntPoint2D, topRight: IntPoint2D, bottomRight: IntPoint2D, bottomLeft: IntPoint2D,
+                     error: Double)
 
   type Repr = FindPerspective
 
@@ -103,34 +111,41 @@ object FindPerspective extends ProcessorFactory {
       val decimA = mkDecim(pathA)
       val decimB = mkDecim(pathB)
 
-      val bestOffsets = Array.fill[(IntPoint2D, Double)](4)(IntPoint2D(0, 0) -> Double.PositiveInfinity)
+      val ZeroPoint   = IntPoint2D(0, 0)
+      val bestOffsets = Array.fill[IntPoint2D](4)(ZeroPoint)
+      var bestError   = Double.PositiveInfinity
 
       val roundsM4 = rounds * 4
       var progOff = 0
       for (r <- 0 until rounds) {
+        println(s"\n==== ROUND ${r + 1} ====\n")
         var coarse    = initCoarse
         var distance  = maxDistance
         while (coarse >= 1) {
           println(s"---- coarse = $coarse")
-          val decimIdx = decimFor(coarse)
+          val decimIdx = 0 // decimFor(coarse)
           val decim    = 1 << decimIdx
           val imgA     = decimA(decimIdx)
           val imgB     = decimB(decimIdx)
           for (corner <- 0 until 4) {
             println(s"---- corner = $corner")
-            val corners: Vector[IntPoint2D] = bestOffsets.map(_._1)(breakOut)
+            val corners: Vector[IntPoint2D] = bestOffsets.toVector
+            val c0        = if (coarse == initCoarse) ZeroPoint else corners(corner)  // XXX
             val range     = -distance to distance by coarse
-            println(s"   (${-distance} to $distance by $coarse (${range.size})")
+            println(s"   ${-distance} to $distance by $coarse (${range.size})")
             val rangeSzSq = range.size * range.size
             var rangeIdx  = 0
             for (dx <- range) {
               for (dy <- range) {
-                val newOffset = corners(corner) + IntPoint2D(dx, dy)
+                val newOffset = c0 + IntPoint2D(dx, dy)
                 val corners1  = corners.updated(corner, newOffset)
                 val err       = blocking(evaluate(imgA, imgB, decim = decim, corners = corners1))
-                if (err < bestOffsets(corner)._2) {
-                  println(s"! bestOffset = ($newOffset, $err)")
-                  bestOffsets(corner) = (newOffset, err)
+                // println(s"! $newOffset - $err")
+                if (err < bestError) {
+                  println(s"! best = $newOffset - $err")
+                  // println("! best")
+                  bestOffsets(corner) = newOffset
+                  bestError           = err
                 }
 
                 rangeIdx += 1
@@ -144,10 +159,13 @@ object FindPerspective extends ProcessorFactory {
           coarse   >>= 1
           distance >>= 1
         }
+
+        println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
       }
 
-      Product(topLeft     = bestOffsets(0)._1, topRight   = bestOffsets(1)._1,
-              bottomRight = bestOffsets(2)._1, bottomLeft = bestOffsets(3)._1)
+      Product(topLeft     = bestOffsets(0), topRight   = bestOffsets(1),
+              bottomRight = bestOffsets(2), bottomLeft = bestOffsets(3),
+              error       = bestError)
     }
   }
 
