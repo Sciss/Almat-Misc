@@ -6,7 +6,6 @@ import de.sciss.file.File
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 
-import scala.collection.breakOut
 import scala.concurrent.blocking
 
 object FindPerspective extends ProcessorFactory {
@@ -161,6 +160,7 @@ object FindPerspective extends ProcessorFactory {
         }
 
         println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
+        println(s" err = $bestError")
       }
 
       Product(topLeft     = bestOffsets(0), topRight   = bestOffsets(1),
@@ -235,7 +235,7 @@ object FindPerspective extends ProcessorFactory {
     val I = a11 * a22 - a21 * a12
 
     @inline
-    def transformInverse(x: Int, y: Int, out: Array[Float]): Unit = {
+    def transformInverse(x: Float, y: Float, out: Array[Float]): Unit = {
       out(0) = imgW * (A * x + B * y + C) / (G * x + H * y + I)
       out(1) = imgH * (D * x + E * y + F) / (G * x + H * y + I)
     }
@@ -270,13 +270,21 @@ object FindPerspective extends ProcessorFactory {
       bilinearInterpolate(xWeight, yWeight, nw, ne, sw, se)
     }
 
+    //    val transX  =      math.min(math.min(x0, x1), math.min(x2, x3)).toInt
+    //    val transY  =      math.min(math.min(y0, y1), math.min(y2, y3)).toInt
+    //    val originX = x0 - transX
+    //    val originY = y0 - transY
+    //
+    //    transX + originX == x0
+    //    transY + originY == y0
+
     val out = new Array[Float](2)
     var iy  = 0
     var err = 0.0
     while (iy < imgH) {
       var ix = 0
       while (ix < imgW) {
-        transformInverse(/* outX + */ ix, /* outY + */ iy, out)
+        transformInverse(/* transX + */ ix + x0, /* transY + */ iy + y0, out)
         val pixelA  = calcPixel(imgA, out(0), out(1))
         val pixelB  = calcPixel(imgB, ix    , iy    )
         val d       = pixelA - pixelB
