@@ -38,7 +38,7 @@ import scala.swing.event.SelectionChanged
 import scala.swing.{ToggleButton, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, Rectangle, ScrollPane}
 
 object Unlike {
-  private val fBase = userHome / "Pictures" /"2015"/"12"/"07"
+  val fBase: File = userHome / "Pictures" /"2015"/"12"/"07"
 
   def mkFrame(): Unit = {
 //    val hAxis1  = new Axis(Orientation.Horizontal)

@@ -18,7 +18,7 @@ import java.awt.image.BufferedImage
 import javax.swing.UIManager
 
 import de.sciss.desktop.OptionPane
-import de.sciss.processor.Processor
+import de.sciss.processor.{ProcessorLike, Processor}
 
 import scala.concurrent.{ExecutionContextExecutor, Future, ExecutionContext}
 import scala.swing.event.ButtonClicked
@@ -30,7 +30,7 @@ package object unlike {
   type Vec[+A]  = scala.collection.immutable.IndexedSeq[A]
   val  Vec      = scala.collection.immutable.IndexedSeq
 
-  def waitForProcessor(p: Processor[Any])(implicit exec: ExecutionContext): Unit = {
+  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
     val sync = new AnyRef
     val t = new Thread {
       override def run(): Unit = {
