@@ -170,6 +170,9 @@ object FindPerspective extends ProcessorFactory {
   }
 
   private def evaluate(imgA: Image, imgB: Image, decim: Int, corners: Vector[IntPoint2D]): Double = {
+    // if (corners == Vector(IntPoint2D(-4, -4), IntPoint2D(-4, -4), IntPoint2D(-4, -4), IntPoint2D(-4, -4))) {
+    //   println("AQUI")
+    // }
     val imgW = imgB.width
     val imgH = imgB.height
     require (imgA.width  == imgW)
@@ -284,7 +287,7 @@ object FindPerspective extends ProcessorFactory {
     while (iy < imgH) {
       var ix = 0
       while (ix < imgW) {
-        transformInverse(/* transX + */ ix + x0, /* transY + */ iy + y0, out)
+        transformInverse(/* transX + */ ix /* + x0 */, /* transY + */ iy /* + y0 */, out)
         val pixelA  = calcPixel(imgA, out(0), out(1))
         val pixelB  = calcPixel(imgB, ix    , iy    )
         val d       = pixelA - pixelB
