@@ -16,7 +16,8 @@ object FindPerspective extends ProcessorFactory {
     * @param initCoarse     maximum coarseness (step-size)
     * @param rounds         number of iterations to refine results
     */
-  case class Config(pathA: File, pathB: File, maxDistance: Int = 100, initCoarse: Int = 32, rounds: Int = 4)
+  case class Config(pathA: File, pathB: File, maxDistance: Int = 100, initCoarse: Int = 48,
+                    rounds: Int = 2, decimStep: Int = 1, log: Boolean = false)
 
   case class Product(topLeft: IntPoint2D, topRight: IntPoint2D, bottomRight: IntPoint2D, bottomLeft: IntPoint2D,
                      error: Double)
@@ -110,73 +111,104 @@ object FindPerspective extends ProcessorFactory {
       val decimA = mkDecim(pathA)
       val decimB = mkDecim(pathB)
 
+      val numCoarse = {
+        var coarse = initCoarse
+        var i = 0
+        do {
+          i += 1
+          for (_ <- 1 to decimStep) coarse = (coarse + 1) >> 1
+        } while (coarse > 1)
+        i
+      }
+
       val ZeroPoint   = IntPoint2D(0, 0)
       val bestOffsets = Array.fill[IntPoint2D](4)(ZeroPoint)
-      var bestError   = Double.PositiveInfinity
+      val bestErrors  = Array.fill[Double    ](numCoarse)(Double.PositiveInfinity)
 
-      val roundsM4 = rounds * 4
+      val progNum = rounds * numCoarse
       var progOff = 0
       for (r <- 0 until rounds) {
-        println(s"\n==== ROUND ${r + 1} ====\n")
+        // if (log) println(s"\n==== ROUND ${r + 1} ====\n")
         var coarse    = initCoarse
         var distance  = maxDistance
-        while (coarse >= 1) {
-          println(s"---- coarse = $coarse")
-          val decimIdx = 0 // decimFor(coarse)
+        var coarseIdx = numCoarse - 1
+        do {
+          if (log) println(s"---- coarse = $coarse")
+          val decimIdx = decimFor(coarse)
+          // val decimIdx = 0
           val decim    = 1 << decimIdx
           val imgA     = decimA(decimIdx)
           val imgB     = decimB(decimIdx)
-          for (corner <- 0 until 4) {
-            println(s"---- corner = $corner")
-            val corners: Vector[IntPoint2D] = bestOffsets.toVector
-            val c0        = if (coarse == initCoarse) ZeroPoint else corners(corner)  // XXX
-            val range     = -distance to distance by coarse
-            println(s"   ${-distance} to $distance by $coarse (${range.size})")
-            val rangeSzSq = range.size * range.size
-            var rangeIdx  = 0
-            for (dx <- range) {
-              for (dy <- range) {
-                val newOffset = c0 + IntPoint2D(dx, dy)
-                val corners1  = corners.updated(corner, newOffset)
-                val err       = blocking(evaluate(imgA, imgB, decim = decim, corners = corners1))
-                // println(s"! $newOffset - $err")
-                if (err < bestError) {
-                  println(s"! best = $newOffset - $err")
-                  // println("! best")
-                  bestOffsets(corner) = newOffset
-                  bestError           = err
-                }
+          val range    = -distance to distance by coarse
+          if (log) println(s"   ${-distance} to $distance by $coarse (${range.size})")
 
-                rangeIdx += 1
-                val p = (progOff + rangeIdx.toDouble / rangeSzSq) / roundsM4
-                progress = p
-                checkAborted()
-              }
+          val cornersCopy = bestOffsets.clone()
+          val corners     = new Array[IntPoint2D](4)
+          // val rangeSzSq = range.size * range.size
+          // yeah, horrible:
+          blocking { for {
+            tlDx <- range
+            tlDy <- range
+            trDx <- range
+            trDy <- range
+            brDx <- range
+            brDy <- range
+            blDx <- range
+            blDy <- range
+          } {
+            corners(0) = cornersCopy(0) + IntPoint2D(tlDx, tlDy)
+            corners(1) = cornersCopy(1) + IntPoint2D(trDx, trDy)
+            corners(2) = cornersCopy(2) + IntPoint2D(brDx, brDy)
+            corners(3) = cornersCopy(3) + IntPoint2D(blDx, blDy)
+
+            val err = evaluate(imgA, imgB, decim = decim, corners = corners)
+            // println(s"! $newOffset - $err")
+            if (err < bestErrors(coarseIdx)) {
+              // println(s"! best = $newOffset - $err")
+              if (log) println(s"! best = $err")
+              // println("! best")
+              bestOffsets(0) = corners(0)
+              bestOffsets(1) = corners(1)
+              bestOffsets(2) = corners(2)
+              bestOffsets(3) = corners(3)
+              bestErrors(coarseIdx) = err
             }
-            progOff += 1
-          }
-          coarse   >>= 1
-          distance >>= 1
-        }
 
-        println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
-        println(s" err = $bestError")
+            // val p = (progOff + rangeIdx.toDouble / rangeSzSq) / roundsM4
+            // progress = p
+          }}
+          // coarse   >>= 1
+          // distance >>= 1
+
+          for (_ <- 1 to decimStep) {
+            coarse   = (coarse   + 1) >> 1
+            distance = (distance + 1) >> 1
+          }
+
+          checkAborted()
+          progOff += 1
+          progress = progOff.toDouble / progNum
+
+          if (log) {
+            println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
+            println(s" err = ${bestErrors(coarseIdx)}")
+          }
+
+          coarseIdx -= 1
+        } while (coarse > 1)
       }
 
       Product(topLeft     = bestOffsets(0), topRight   = bestOffsets(1),
               bottomRight = bestOffsets(2), bottomLeft = bestOffsets(3),
-              error       = bestError)
+              error       = bestErrors(0))
     }
   }
 
-  private def evaluate(imgA: Image, imgB: Image, decim: Int, corners: Vector[IntPoint2D]): Double = {
-    // if (corners == Vector(IntPoint2D(-4, -4), IntPoint2D(-4, -4), IntPoint2D(-4, -4), IntPoint2D(-4, -4))) {
-    //   println("AQUI")
-    // }
+  private def evaluate(imgA: Image, imgB: Image, decim: Int, corners: Array[IntPoint2D]): Double = {
     val imgW = imgB.width
     val imgH = imgB.height
-    require (imgA.width  == imgW)
-    require (imgA.height == imgH)
+    // require (imgA.width  == imgW)
+    // require (imgA.height == imgH)
 
     // cf. JHLabs PerspectiveFilter
 
