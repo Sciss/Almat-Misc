@@ -3,9 +3,11 @@ package de.sciss.unlike
 import javax.imageio.ImageIO
 
 import de.sciss.file.File
+import de.sciss.numbers
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 
+import scala.annotation.switch
 import scala.concurrent.blocking
 
 object FindPerspective extends ProcessorFactory {
@@ -123,88 +125,79 @@ object FindPerspective extends ProcessorFactory {
 
       val ZeroPoint   = IntPoint2D(0, 0)
       val bestOffsets = Array.fill[IntPoint2D](4)(ZeroPoint)
-      val bestErrors  = Array.fill[Double    ](numCoarse)(Double.PositiveInfinity)
+      val bestErrors  = Array.fill[Array[Double]](numCoarse)(Array.fill(4)(Double.PositiveInfinity))
 
-      val progNum = rounds * numCoarse
+      val progNum = rounds * numCoarse * 4
       var progOff = 0
-      for (r <- 0 until rounds) {
-        // if (log) println(s"\n==== ROUND ${r + 1} ====\n")
-        var coarse    = initCoarse
-        var distance  = maxDistance
-        var coarseIdx = numCoarse - 1
-        do {
-          if (log) println(s"---- coarse = $coarse")
-          val decimIdx = decimFor(coarse)
-          // val decimIdx = 0
-          val decim    = 1 << decimIdx
-          val imgA     = decimA(decimIdx)
-          val imgB     = decimB(decimIdx)
-          val range    = -distance to distance by coarse
-          if (log) println(s"   ${-distance} to $distance by $coarse (${range.size})")
 
-          val cornersCopy = bestOffsets.clone()
-          val corners     = new Array[IntPoint2D](4)
-          // val rangeSzSq = range.size * range.size
-          // yeah, horrible:
-          blocking { for {
-            tlDx <- range
-            tlDy <- range
-            trDx <- range
-            trDy <- range
-            brDx <- range
-            brDy <- range
-            blDx <- range
-            blDy <- range
-          } {
-            corners(0) = cornersCopy(0) + IntPoint2D(tlDx, tlDy)
-            corners(1) = cornersCopy(1) + IntPoint2D(trDx, trDy)
-            corners(2) = cornersCopy(2) + IntPoint2D(brDx, brDy)
-            corners(3) = cornersCopy(3) + IntPoint2D(blDx, blDy)
+      var coarse    = initCoarse
+      var coarseIdx = numCoarse - 1
+      var distance  = maxDistance
 
-            val err = evaluate(imgA, imgB, decim = decim, corners = corners)
-            // println(s"! $newOffset - $err")
-            if (err < bestErrors(coarseIdx)) {
-              // println(s"! best = $newOffset - $err")
-              if (log) println(s"! best = $err")
-              // println("! best")
-              bestOffsets(0) = corners(0)
-              bestOffsets(1) = corners(1)
-              bestOffsets(2) = corners(2)
-              bestOffsets(3) = corners(3)
-              bestErrors(coarseIdx) = err
+      do {
+        if (log) println(s"---- coarse = $coarse")
+        val decimIdx = decimFor(coarse)
+        // val decimIdx = 0
+        val decim    = 1 << decimIdx
+        val imgA     = decimA(decimIdx)
+        val imgB     = decimB(decimIdx)
+        if (log) println(s"   ${-distance} to $distance by $coarse")
+        val corners = bestOffsets.clone()
+
+        val distance2 = distance + distance
+        
+        for (r <- 0 until rounds) {
+          // if (log) println(s"\n==== ROUND ${r + 1} ====\n")
+
+          for (cornerIdx <- 0 until 4) {
+            val off0  = /* if (coarse == initCoarse) ZeroPoint else */ corners(cornerIdx)
+            import numbers.Implicits._
+            val rxMin  = (off0.x - distance).clip(-maxDistance, maxDistance - distance2)
+            val rxMax  = rxMin + distance2
+            val xRange = rxMin to rxMax by coarse
+            val ryMin  = (off0.y - distance).clip(-maxDistance, maxDistance - distance2)
+            val ryMay  = ryMin + distance2
+            val yRange = ryMin to ryMay by coarse
+            for {
+              dx <- xRange
+              dy <- yRange
+            } {
+              // assert(dx >= -maxDistance && dx <= maxDistance, s"off0.x = ${off0.x}, rxMin = $rxMin, rxMax = $rxMax")
+              corners(cornerIdx) = /* off0 + */ IntPoint2D(dx, dy)
+              val err = evaluate(imgA, imgB, decim = decim, corners = corners, cornerIdx = cornerIdx)
+              if (err < bestErrors(coarseIdx)(cornerIdx)) {
+                if (log) println(s"! best = $err")
+                bestOffsets(cornerIdx) = corners(cornerIdx)
+                bestErrors(coarseIdx)(cornerIdx) = err
+              }
             }
 
-            // val p = (progOff + rangeIdx.toDouble / rangeSzSq) / roundsM4
-            // progress = p
-          }}
-          // coarse   >>= 1
-          // distance >>= 1
-
-          for (_ <- 1 to decimStep) {
-            coarse   = (coarse   + 1) >> 1
-            distance = (distance + 1) >> 1
+            checkAborted()
+            progOff += 1
+            progress = progOff.toDouble / progNum
           }
+        }
 
-          checkAborted()
-          progOff += 1
-          progress = progOff.toDouble / progNum
+        for (_ <- 1 to decimStep) {
+          coarse   = (coarse   + 1) >> 1
+          distance = (distance + 1) >> 1
+        }
+        coarseIdx -= 1
 
-          if (log) {
-            println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
-            println(s" err = ${bestErrors(coarseIdx)}")
-          }
+        if (log) {
+          println(s"\n TL = ${bestOffsets(0)}\n TR = ${bestOffsets(1)}\n BR = ${bestOffsets(2)}\n BL = ${bestOffsets(3)}")
+          println(s" err = ${bestErrors(coarseIdx)}")
+        }
 
-          coarseIdx -= 1
-        } while (coarse > 1)
-      }
+      } while (coarse > 1)
 
       Product(topLeft     = bestOffsets(0), topRight   = bestOffsets(1),
               bottomRight = bestOffsets(2), bottomLeft = bestOffsets(3),
-              error       = bestErrors(0))
+              error       = bestErrors(0).sum)
     }
   }
 
-  private def evaluate(imgA: Image, imgB: Image, decim: Int, corners: Array[IntPoint2D]): Double = {
+  private def evaluate(imgA: Image, imgB: Image, decim: Int, corners: Array[IntPoint2D], cornerIdx: Int): Double = {
     val imgW = imgB.width
     val imgH = imgB.height
     // require (imgA.width  == imgW)
@@ -323,7 +316,18 @@ object FindPerspective extends ProcessorFactory {
         val pixelA  = calcPixel(imgA, out(0), out(1))
         val pixelB  = calcPixel(imgB, ix    , iy    )
         val d       = pixelA - pixelB
-        err += d * d
+
+        val xw      = ix.toDouble / imgW1
+        val yw      = iy.toDouble / imgH1
+
+        val w = (cornerIdx: @switch) match {
+          case 0 => (1.0 - xw) * (1.0 - yw)
+          case 1 => xw * (1.0 - yw)
+          case 2 => xw * yw
+          case 3 => (1.0 - xw) * yw
+        }
+
+        err += d * d * w
         ix += 1
       }
       iy += 1
