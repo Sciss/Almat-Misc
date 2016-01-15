@@ -327,7 +327,7 @@ object FindPerspective extends ProcessorFactory {
           case 3 => (1.0 - xw) * yw
         }
 
-        err += d * d * w
+        err += d * d * w * w * w
         ix += 1
       }
       iy += 1
