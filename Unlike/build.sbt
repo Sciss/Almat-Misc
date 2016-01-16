@@ -21,7 +21,8 @@ lazy val commonSettings = Seq(
     "de.sciss"          %% "play-json-sealed"   % "0.2.0",
     "de.sciss"          %% "kollflitz"          % "0.2.0",
     "de.sciss"          %  "weblaf"             % "1.28",
-    "com.github.scopt"  %% "scopt"              % "3.3.0"
+    "com.github.scopt"  %% "scopt"              % "3.3.0",
+    "de.sciss"          %% "scissdsp"           % "1.2.2"
   )
 )
 

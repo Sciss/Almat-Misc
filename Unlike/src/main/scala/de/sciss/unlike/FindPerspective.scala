@@ -13,8 +13,6 @@
 
 package de.sciss.unlike
 
-import javax.imageio.ImageIO
-
 import de.sciss.file.File
 import de.sciss.numbers
 import de.sciss.processor.impl.ProcessorImpl
@@ -40,68 +38,6 @@ object FindPerspective extends ProcessorFactory {
   type Repr = FindPerspective
 
   protected def prepare(config: Config): Prepared = new Impl(config)
-
-  private final class Image(val data: Array[Float], val width: Int, val height: Int) {
-    def pixel(x: Int, y: Int): Float = data(y * width + x)
-
-    def pixelCheck(x: Int, y: Int): Float = {
-      val idx = y * width + x
-      if (idx < 0 || idx >= data.length) {
-        println(s"For an image of ($width, $height) and data.length ${data.length}, x = $x, y = $y")
-      }
-      data(idx)
-    }
-
-    def quarter(): Image = {
-      val wh  = width  >> 1
-      val hh  = height >> 1
-      val arr = new Array[Float](wh * hh)
-      var i = 0
-      var y = 0
-      while (y < hh) {
-        var x = 0
-        while (x < wh) {
-          val nw = pixel( x << 1     ,  y << 1     )
-          val ne = pixel((x << 1) + 1,  y << 1     )
-          val se = pixel((x << 1) + 1, (y << 1) + 1)
-          val sw = pixel( x << 1     , (y << 1) + 1)
-          val m  = (nw + ne + se + sw) / 4
-          arr(i) = m
-          x += 1
-          i += 1
-        }
-        y += 1
-      }
-      new Image(arr, width = wh, height = hh)
-    }
-  }
-
-  private object Image {
-    def read(fIn: File): Image = {
-      val imgIn     = ImageIO.read(fIn)
-      val imgCrop   = imgIn // cropImage2(config, imgIn)
-      val w         = imgCrop.getWidth
-      val h         = imgCrop.getHeight
-
-      val arr       = new Array[Float](w * h)
-
-      var y = 0
-      var t = 0
-      while (y < h) {
-        var x = 0
-        while (x < w) {
-          val rgbIn = imgCrop.getRGB(x, y)
-          val vIn = (((rgbIn & 0xFF0000) >> 16) + ((rgbIn & 0x00FF00) >> 8) + (rgbIn & 0x0000FF)) / 765f // it's gray anyway
-          arr(t) = vIn
-          x += 1
-          t += 1
-        }
-        y += 1
-      }
-
-      new Image(arr, width = w, height = h)
-    }
-  }
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     protected def body(): Product = {
@@ -218,7 +154,7 @@ object FindPerspective extends ProcessorFactory {
 
     // cf. JHLabs PerspectiveFilter
 
-    val decimR = 1.0f / decim
+    val decimR = 1.0 / decim
 
     val x0 = corners(0).x * decimR
     val y0 = corners(0).y * decimR
@@ -236,14 +172,14 @@ object FindPerspective extends ProcessorFactory {
     val dx3 = x0 - x1 + x2 - x3
     val dy3 = y0 - y1 + y2 - y3
 
-    var a11 = 0f
-    var a12 = 0f
-    var a13 = 0f
-    var a21 = 0f
-    var a22 = 0f
-    var a23 = 0f
-    var a31 = 0f
-    var a32 = 0f
+    var a11 = 0.0
+    var a12 = 0.0
+    var a13 = 0.0
+    var a21 = 0.0
+    var a22 = 0.0
+    var a23 = 0.0
+    var a31 = 0.0
+    var a32 = 0.0
 
     if (dx3 == 0 && dy3 == 0) {
       a11 = x1 - x0
@@ -252,8 +188,8 @@ object FindPerspective extends ProcessorFactory {
       a12 = y1 - y0
       a22 = y2 - y1
       a32 = y0
-      a13 = 0f
-      a23 = 0f
+      a13 = 0.0
+      a23 = 0.0
     } else {
       a13 = (dx3 * dy2 - dx2 * dy3) / (dx1 * dy2 - dy1 * dx2)
       a23 = (dx1 * dy3 - dy1 * dx3) / (dx1 * dy2 - dy1 * dx2)
@@ -276,15 +212,15 @@ object FindPerspective extends ProcessorFactory {
     val I = a11 * a22 - a21 * a12
 
     @inline
-    def transformInverse(x: Float, y: Float, out: Array[Float]): Unit = {
+    def transformInverse(x: Double, y: Double, out: Array[Double]): Unit = {
       out(0) = imgW * (A * x + B * y + C) / (G * x + H * y + I)
       out(1) = imgH * (D * x + E * y + F) / (G * x + H * y + I)
     }
 
     @inline
-    def bilinearInterpolate(xw: Float, yw: Float, nw: Float, ne: Float, sw: Float, se: Float): Float = {
-      val xw1 = 1f - xw
-      val yw1 = 1f - yw
+    def bilinearInterpolate(xw: Double, yw: Double, nw: Double, ne: Double, sw: Double, se: Double): Double = {
+      val xw1 = 1.0 - xw
+      val yw1 = 1.0 - yw
       val top = xw1 * nw + xw * ne
       val bot = xw1 * sw + xw * se
       top * yw1 + bot * yw
@@ -293,7 +229,7 @@ object FindPerspective extends ProcessorFactory {
     val imgW1 = imgW - 1
     val imgH1 = imgH - 1
 
-    def calcPixel(img: Image, x: Float, y: Float): Float = {
+    def calcPixel(img: Image, x: Double, y: Double): Double = {
       val srcX0   = math.floor(x).toInt
       val srcY0   = math.floor(y).toInt
       val xWeight = x - srcX0
@@ -319,7 +255,7 @@ object FindPerspective extends ProcessorFactory {
     //    transX + originX == x0
     //    transY + originY == y0
 
-    val out = new Array[Float](2)
+    val out = new Array[Double](2)
     var iy  = 0
     var err = 0.0
     while (iy < imgH) {

@@ -17,12 +17,13 @@ import java.awt.image.BufferedImage
 import javax.swing.UIManager
 
 import de.sciss.desktop.OptionPane
-import de.sciss.processor.{ProcessorLike, Processor}
+import de.sciss.processor.{Processor, ProcessorLike}
+import de.sciss.swingplus.CloseOperation
 
-import scala.concurrent.{ExecutionContextExecutor, Future, ExecutionContext}
-import scala.swing.event.ButtonClicked
-import scala.swing.{Button, ProgressBar}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.swing.Swing._
+import scala.swing.event.ButtonClicked
+import scala.swing.{Button, Frame, ProgressBar, Swing}
 import scala.util.control.NonFatal
 
 package object unlike {
@@ -90,4 +91,27 @@ package object unlike {
     src.getSubimage(x, y, width, height)
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
+
+  implicit class ImageOps(private val i: Image) extends AnyVal {
+    def plot(zoom: Double = 1.0, mul: Double = 1.0, add: Double = 0.0, invert: Boolean = false,
+             title: String = "Plot"): ImageView = {
+      val view = ImageView(i)
+      import swingplus.Implicits._
+      Swing.onEDT {
+        view.zoom   = zoom
+        view.mul    = mul
+        view.add    = add
+        view.invert = invert
+
+        val f = new Frame {
+          contents  = view.component
+          this.defaultCloseOperation = CloseOperation.Dispose
+        }
+        f.title = title
+        f.pack().centerOnScreen()
+        f.open()
+      }
+      view
+    }
+  }
 }
