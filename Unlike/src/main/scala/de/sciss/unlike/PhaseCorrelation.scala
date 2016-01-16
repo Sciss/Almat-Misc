@@ -28,6 +28,10 @@ object PhaseCorrelation extends ProcessorFactory {
   case class Config(pathA: File, pathB: File, downSample: Double = 1.0,
                     rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
                     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
+
+  object Product {
+    def identity: Product = Product(translateX = 0.0, translateY = 0.0, rotate = 0.0, scale = 1.0)
+  }
   case class Product(translateX: Double, translateY: Double, rotate: Double, scale: Double) {
     override def toString =
       f"Product(translate = ($translateX%1.1f, $translateY%1.1f), rotate = $rotate%1.1f, scale = $scale%1.3f)"
