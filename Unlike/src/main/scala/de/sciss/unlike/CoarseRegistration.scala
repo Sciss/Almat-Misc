@@ -42,7 +42,9 @@ object CoarseRegistration extends App {
 
   val fft   = new DoubleFFT_2D(/* rows = */ w, /* columns = */ h)
 
-  // XXX TODO -- here we could multiply by a Hann window first
+  applyWindow(imgA)
+  applyWindow(imgB)
+
   val dataA = realToComplex(imgA.data)
   val dataB = realToComplex(imgB.data)
 
@@ -189,6 +191,25 @@ object CoarseRegistration extends App {
     while (i < n) {
       data(i) = -data(i)
       i += 2
+    }
+  }
+
+  def applyWindow(image: Image): Unit = {
+    val data  = image.data
+    val w     = image.width
+    val h     = image.height
+    val winH  = WindowFunction.Hanning.create(w)
+    val winV  = WindowFunction.Hanning.create(h)
+    var y = 0
+    while (y < h) {
+      val ys = winV(y)
+      var x  = 0
+      while (x < w) {
+        val xs = winH(x)
+        data(y * w + x) *= xs * ys
+        x += 1
+      }
+      y += 1
     }
   }
 }
