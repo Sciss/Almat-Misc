@@ -36,9 +36,20 @@ object PerspectiveTest extends App {
 //  val config  = PhaseCorrelation.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
 //    pathB = file("_creation") / "test_image1.jpg",
 //    downSample = 1.0)
-  val config  = PhaseCorrelation.Config(pathA = Unlike.mkFIn(9227),
-                                        pathB = Unlike.mkFIn(9228),
-                                        downSample = 2.0)
+
+//  val config  = PhaseCorrelation.Config(pathA = Unlike.mkFIn(9227),
+//    pathB = Unlike.mkFIn(9228),
+//    downSample = 2.0)
+
+  val config  = PhaseCorrelation.Config(pathA = mkBird(1001),
+                                        pathB = mkBird(1002),
+                                        downSample = 1.0)
+
+//  val config  = PhaseCorrelation.Config(
+//    pathA = file("_creation") / "test_image3.png",
+//    pathB = file("_creation") / "test_image3_move17_-11.png",
+//    downSample = 1.0)
+
   val proc    = PhaseCorrelation(config)
   waitForProcessor(proc)
   println(new java.util.Date)
@@ -51,4 +62,6 @@ object PerspectiveTest extends App {
       Thread.sleep(200)
       sys.exit()
   }
+
+  def mkBird(frame: Int): File = file("_creation") / "bird" / f"$frame%04d.jpg"
 }

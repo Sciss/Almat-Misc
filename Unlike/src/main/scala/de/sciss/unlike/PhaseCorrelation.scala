@@ -79,11 +79,12 @@ object PhaseCorrelation extends ProcessorFactory {
       assert(dataC.length == w * h)
       val imgC    = new Image(dataC, width = w, height = h)
 
-      val pp      = findPeak(imgC)
+      // val pp      = findPeak(imgC)
+      val (ppx, ppy) = findPeakCentroid(imgC)
       // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
       // println(s"Peak at (${pp.x}, ${pp.y})")
-      val shiftX  = if (pp.x > imgC.width /2) pp.x - imgC.width  else pp.x
-      val shiftY  = if (pp.y > imgC.height/2) pp.y - imgC.height else pp.y
+      val shiftX  = if (ppx > imgC.width /2) ppx - imgC.width  else ppx
+      val shiftY  = if (ppy > imgC.height/2) ppy - imgC.height else ppy
 
       // println(s"Peak at ($shiftX, $shiftY)")
       Product(translateX = shiftX * downSample, translateY = shiftY * downSample, rotate = 0.0, scale = 1.0)
@@ -146,6 +147,89 @@ object PhaseCorrelation extends ProcessorFactory {
     val y = j / w
     // println(s"j = $j")
     IntPoint2D(x, y)
+  }
+
+  def findPeakCentroid(image: Image): (Double, Double) = {
+    val data = image.data
+    val w = image.width
+    val h = image.height
+    val n = data.length
+    var i = 0
+    var j = 0
+    var max = Double.NegativeInfinity
+    while (i < n) {
+      val d = data(i)
+      if (d > max) {
+        max = d
+        j   = i
+      }
+      i += 1
+    }
+    val px = j % w
+    val py = j / w
+
+    def calc(nSz: Int): (Double, Double) = {
+      var cx = 0.0
+      var cy = 0.0
+      var cs = 0.0
+
+      val x0  = math.max(0, px - nSz)
+      val xs  = math.min(w, px + nSz + 1)
+      val y0  = math.max(0, py - nSz)
+      val ys  = math.min(h, py + nSz + 1)
+      var x   = x0
+      while (x < xs) {
+        var y = y0
+        while (y < ys) {
+          val q = image.pixel(x, y)
+          cx += q * x
+          cy += q * y
+          cs += q
+          y += 1
+        }
+        x += 1
+      }
+
+      cx /= cs
+      cy /= cs
+
+      (cx, cy)
+    }
+
+//    var cx = max * px
+//    var cy = max * py
+//    var cs = max
+//
+//    @tailrec
+//    def move(x: Int, y: Int, p: Double, dx: Int, dy: Int, c: Int = 0): Unit = if (c < 1) {
+//      val nx = x + dx
+//      val ny = y + dy
+//      if (nx >= 0 && nx < w && ny >= y && ny < h) {
+//        val q = image.pixel(nx, ny)
+//        if (q <= p) {
+//          cx += q * nx
+//          cy += q * ny
+//          cs += q
+//          move(x = nx, y = ny, p = q, dx = dx, dy = dy, c = c + 1)
+//        }
+//      }
+//    }
+//
+//    move(x = px, y = py, p = max, dx = -1, dy =  0)
+//    move(x = px, y = py, p = max, dx =  1, dy =  0)
+//    move(x = px, y = py, p = max, dx =  0, dy = -1)
+//    move(x = px, y = py, p = max, dx =  0, dy =  1)
+//
+//    move(x = px, y = py, p = max, dx = -1, dy = -1)
+//    move(x = px, y = py, p = max, dx =  1, dy = -1)
+//    move(x = px, y = py, p = max, dx = -1, dy =  1)
+//    move(x = px, y = py, p = max, dx =  1, dy =  1)
+
+    // somehow running this with two different even/odd
+    // radiuses and averaging the result seems the most precise...
+    val (ex1, ey1) = calc(1)
+    val (ex2, ey2) = calc(2)
+    ((ex1 + ex2) / 2, (ey1 + ey2) / 2)
   }
 
   /** Creates a new array double the size with real from input and zero imag. */
