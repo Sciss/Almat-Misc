@@ -8,7 +8,7 @@ lazy val commonSettings = Seq(
   description         := "A photo/video experiment",
   homepage            := Some(url(s"https://github.com/Sciss/$baseName")),
   scalaVersion        := "2.11.7",
-  licenses            := Seq(cc_by_nc_nd),
+  licenses            := Seq(gpl2),
   scalacOptions      ++= Seq("-deprecation", "-unchecked", "-feature", "-encoding", "utf8", "-Xfuture", "-Xlint"),
   libraryDependencies ++= Seq(
     "de.sciss"          %% "fileutil"           % "1.1.1",
@@ -25,7 +25,8 @@ lazy val commonSettings = Seq(
   )
 )
 
-lazy val cc_by_nc_nd = "CC BY-NC-ND 4.0" -> url("http://creativecommons.org/licenses/by-nc-nd/4.0/legalcode")
+//lazy val cc_by_nc_nd = "CC BY-NC-ND 4.0" -> url("http://creativecommons.org/licenses/by-nc-nd/4.0/legalcode")
+lazy val gpl2        = "GPL v2+"         -> url("http://www.gnu.org/licenses/gpl-2.0.txt")
 
 lazy val root = Project(id = baseNameL, base = file("."))
   .settings(commonSettings)

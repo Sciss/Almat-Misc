@@ -1,15 +1,14 @@
 /*
- * package.scala
- * (Unlike)
+ *  package.scala
+ *  (Unlike)
  *
- * Copyright (c) 2015 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
  *
- * This software and music is published under the
- * Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License
- * (CC BY-NC-ND 4.0)
+ *	This software is published under the GNU General Public License v2+
  *
- * For further information, please contact Hanns Holger Rutz at
- * contact@sciss.de
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
  */
 
 package de.sciss

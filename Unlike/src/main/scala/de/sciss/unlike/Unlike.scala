@@ -1,15 +1,14 @@
 /*
- * Unlike.scala
- * (Unlike)
+ *  Unlike.scala
+ *  (Unlike)
  *
- * Copyright (c) 2015 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
  *
- * This software and music is published under the
- * Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License
- * (CC BY-NC-ND 4.0)
+ *	This software is published under the GNU General Public License v2+
  *
- * For further information, please contact Hanns Holger Rutz at
- * contact@sciss.de
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
  */
 
 package de.sciss.unlike
@@ -35,10 +34,12 @@ import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._
 import scala.swing.event.SelectionChanged
-import scala.swing.{ToggleButton, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, Rectangle, ScrollPane}
+import scala.swing.{Swing, ToggleButton, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, Rectangle, ScrollPane}
 
 object Unlike {
   val fBase: File = userHome / "Pictures" /"2015"/"12"/"07"
+
+  def main(args: Array[String]): Unit = Swing.onEDT(Unlike.mkFrame())
 
   def mkFrame(): Unit = {
 //    val hAxis1  = new Axis(Orientation.Horizontal)
