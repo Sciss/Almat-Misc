@@ -60,8 +60,8 @@ final class Image(val data: Array[Double], val width: Int, val height: Int) {
   def sameSize(that: Image): Boolean = this.width == that.width && this.height == that.height
 
   def toAwt(mul: Double, add: Double, invert: Boolean): BufferedImage = {
-    val img       = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-    val g         = img.createGraphics()
+    val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+    val g   = img.createGraphics()
 
     import numbers.Implicits._
 
@@ -73,7 +73,7 @@ final class Image(val data: Array[Double], val width: Int, val height: Int) {
         val lambda  = if (invert) 1.0 - lambda0 else lambda0
         val amt     = (lambda * 255 + 0.5).toInt
         g.setColor(new Color(amt, amt, amt))
-        g.fillRect(xi, height - yi - 1, 1, 1)
+        g.fillRect(xi, yi, 1, 1)
         xi += 1
       }
       yi += 1

@@ -15,12 +15,12 @@ package de.sciss.unlike
 
 import java.util
 
-import de.sciss.file._
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
 
 import scala.swing.Swing
 
 object CoarseRegistration extends App {
+//  import de.sciss.file._
 //  val pathA  = file("_creation") / "test_image1_move30_-30.jpg"
 //  val pathB  = file("_creation") / "test_image1.jpg"
 //  val imgA    = Image.read(pathA)
@@ -40,7 +40,7 @@ object CoarseRegistration extends App {
 
   println(s"w = $w, h = $h, size = ${imgA.data.length}")
 
-  val fft   = new DoubleFFT_2D(/* rows = */ w, /* columns = */ h)
+  val fft   = new DoubleFFT_2D(/* rows = */ h, /* columns = */ w)
 
   applyWindow(imgA)
   applyWindow(imgB)
@@ -68,8 +68,9 @@ object CoarseRegistration extends App {
 
   val pp      = findPeak(imgC)
   // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
-  val shiftX  = if (pp.x > imgC.width /2) imgC.width  - pp.x else pp.x
-  val shiftY  = if (pp.y > imgC.height/2) imgC.height - pp.y else pp.y
+  // println(s"Peak at (${pp.x}, ${pp.y})")
+  val shiftX  = if (pp.x > imgC.width /2) pp.x - imgC.width  else pp.x
+  val shiftY  = if (pp.y > imgC.height/2) pp.y - imgC.height else pp.y
   println(s"Peak at ($shiftX, $shiftY)")
 
   normalize(dataC)
@@ -111,6 +112,7 @@ object CoarseRegistration extends App {
 
   def findPeak(image: Image): IntPoint2D = {
     val data = image.data
+    val w = image.width
     val n = data.length
     var i = 0
     var j = 0
@@ -123,8 +125,9 @@ object CoarseRegistration extends App {
       }
       i += 1
     }
-    val x = j % image.width
-    val y = j / image.width
+    val x = j % w
+    val y = j / w
+    // println(s"j = $j")
     IntPoint2D(x, y)
   }
 
