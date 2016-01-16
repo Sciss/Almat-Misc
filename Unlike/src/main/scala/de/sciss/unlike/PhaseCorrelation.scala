@@ -1,5 +1,5 @@
 /*
- *  CoarseRegistration.scala
+ *  PhaseCorrelation.scala
  *  (Unlike)
  *
  *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
@@ -15,67 +15,79 @@ package de.sciss.unlike
 
 import java.util
 
+import de.sciss.file._
+import de.sciss.processor.impl.ProcessorImpl
+import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
 
-import scala.swing.Swing
+import scala.concurrent.blocking
 
-object CoarseRegistration extends App {
-//  import de.sciss.file._
-//  val pathA  = file("_creation") / "test_image1_move30_-30.jpg"
-//  val pathB  = file("_creation") / "test_image1.jpg"
-//  val imgA    = Image.read(pathA)
-//  val imgB    = Image.read(pathB)
+object PhaseCorrelation extends ProcessorFactory {
+  type Repr = PhaseCorrelation
 
-  import Unlike.mkFIn
+  case class Config(pathA: File, pathB: File,
+                    rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
+                    scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
+  case class Product(translateX: Double, translateY: Double, rotate: Double, scale: Double) {
+    override def toString =
+      f"Product(translate = ($translateX%1.1f, $translateY%1.1f), rotate = $rotate%1.1f, scale = $scale%1.3f)"
+  }
 
-  val pathA = mkFIn(9227)
-  val pathB = mkFIn(9228)
+  protected def prepare(config: Config): Prepared = new Impl(config)
 
-  val imgA  = Image.read(pathA).quarter()
-  val imgB  = Image.read(pathB).quarter()
+  private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
+    protected def body(): Product = {
+      import config._
 
-  require(imgA sameSize imgB)
-  val w     = imgA.width
-  val h     = imgA.height
+      val imgA  = blocking(Image.read(pathA)) // .quarter()
+      val imgB  = blocking(Image.read(pathB)) // .quarter()
 
-  println(s"w = $w, h = $h, size = ${imgA.data.length}")
+      require(imgA sameSize imgB, "Images must have the same size")
+      val w     = imgA.width
+      val h     = imgA.height
 
-  val fft   = new DoubleFFT_2D(/* rows = */ h, /* columns = */ w)
+      // println(s"w = $w, h = $h, size = ${imgA.data.length}")
 
-  applyWindow(imgA)
-  applyWindow(imgB)
+      val fft   = new DoubleFFT_2D(/* rows = */ h, /* columns = */ w)
 
-  val dataA = realToComplex(imgA.data)
-  val dataB = realToComplex(imgB.data)
+      applyWindow(imgA)
+      applyWindow(imgB)
 
-  fft.complexForward(dataA)
-  fft.complexForward(dataB)
+      val dataA = blocking(realToComplex(imgA.data))
+      val dataB = blocking(realToComplex(imgB.data))
 
-  // Note: for the magnitudes it doesn't matter whether
-  // you multiply with the conjugate matrix or the non-conjugate matrix.
-  // Therefore, the formula (3) in Thomas et al. becomes:
-  // F1 F2∗ / | F1 F2∗ |
+      fft.complexForward(dataA)
+      fft.complexForward(dataB)
 
-  complexConj(dataB)
-  elemMul(dataA, dataB)
-  elemNorm(dataA)
+      // Note: for the magnitudes it doesn't matter whether
+      // you multiply with the conjugate matrix or the non-conjugate matrix.
+      // Therefore, the formula (3) in Thomas et al. becomes:
+      // F1 F2∗ / | F1 F2∗ |
 
-  fft.complexInverse(dataA, true)
+      complexConj(dataB)
+      elemMul(dataA, dataB)
+      elemNorm(dataA)
 
-  val dataC   = complexToReal(dataA)
-  assert(dataC.length == w * h)
-  val imgC    = new Image(dataC, width = w, height = h)
+      blocking(fft.complexInverse(dataA, true))
 
-  val pp      = findPeak(imgC)
-  // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
-  // println(s"Peak at (${pp.x}, ${pp.y})")
-  val shiftX  = if (pp.x > imgC.width /2) pp.x - imgC.width  else pp.x
-  val shiftY  = if (pp.y > imgC.height/2) pp.y - imgC.height else pp.y
-  println(s"Peak at ($shiftX, $shiftY)")
+      val dataC   = complexToReal(dataA)
+      assert(dataC.length == w * h)
+      val imgC    = new Image(dataC, width = w, height = h)
 
-  normalize(dataC)
-  val view = imgC.plot(zoom = 0.25) // mul = 0.5 / math.Pi, add = 0.5
-  Swing.onEDT { view.zoom = 1.0 }
+      val pp      = findPeak(imgC)
+      // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
+      // println(s"Peak at (${pp.x}, ${pp.y})")
+      val shiftX  = if (pp.x > imgC.width /2) pp.x - imgC.width  else pp.x
+      val shiftY  = if (pp.y > imgC.height/2) pp.y - imgC.height else pp.y
+
+      // println(s"Peak at ($shiftX, $shiftY)")
+      Product(translateX = shiftX, translateY = shiftY, rotate = 0.0, scale = 1.0)
+    }
+  }
+
+  //  normalize(dataC)
+  //  val view = imgC.plot(zoom = 0.25) // mul = 0.5 / math.Pi, add = 0.5
+  //  Swing.onEDT { view.zoom = 1.0 }
 
   /** Element-wise multiplication, replacing the contents of `a`. */
   def elemMul(a: Array[Double], b: Array[Double]): Unit = {
@@ -215,4 +227,7 @@ object CoarseRegistration extends App {
       y += 1
     }
   }
+}
+trait PhaseCorrelation extends ProcessorLike[PhaseCorrelation.Product, PhaseCorrelation] {
+  def config: PhaseCorrelation.Config
 }

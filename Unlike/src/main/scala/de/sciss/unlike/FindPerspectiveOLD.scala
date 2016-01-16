@@ -1,5 +1,5 @@
 /*
- *  FindPerspective.scala
+ *  FindPerspectiveOLD.scala
  *  (Unlike)
  *
  *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
@@ -21,7 +21,7 @@ import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 import scala.annotation.switch
 import scala.concurrent.blocking
 
-object FindPerspective extends ProcessorFactory {
+object FindPerspectiveOLD extends ProcessorFactory {
 
   /** @param pathA          path of the 'original' image
     * @param pathB          path of the image to find the transform for
@@ -35,7 +35,7 @@ object FindPerspective extends ProcessorFactory {
   case class Product(topLeft: IntPoint2D, topRight: IntPoint2D, bottomRight: IntPoint2D, bottomLeft: IntPoint2D,
                      error: Double)
 
-  type Repr = FindPerspective
+  type Repr = FindPerspectiveOLD
 
   protected def prepare(config: Config): Prepared = new Impl(config)
 
@@ -94,7 +94,7 @@ object FindPerspective extends ProcessorFactory {
         val corners = bestOffsets.clone()
 
         val distance2 = distance + distance
-        
+
         for (r <- 0 until rounds) {
           // if (log) println(s"\n==== ROUND ${r + 1} ====\n")
 
@@ -290,6 +290,6 @@ object FindPerspective extends ProcessorFactory {
   * an image `b` so that it maximally matches an image `a`. The transform
   * is returned as offsets of the four corners of the perspective frame.
   */
-trait FindPerspective extends ProcessorLike[FindPerspective.Product, FindPerspective] {
-  def config: FindPerspective.Config
+trait FindPerspectiveOLD extends ProcessorLike[FindPerspectiveOLD.Product, FindPerspectiveOLD] {
+  def config: FindPerspectiveOLD.Config
 }

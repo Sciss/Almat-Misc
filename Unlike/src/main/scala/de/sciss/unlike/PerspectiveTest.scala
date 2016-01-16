@@ -19,9 +19,23 @@ import de.sciss.processor._
 object PerspectiveTest extends App {
   // import Unlike.mkFIn
   // val config  = FindPerspective.Config(pathA = mkFIn(9227), pathB = mkFIn(9228), rounds = 2)
-  val config  = FindPerspective.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
-                                       pathB = file("_creation") / "test_image1.jpg", initCoarse = 16, rounds = 32)
-  val proc    = FindPerspective(config)
+
+  //  val config  = FindPerspectiveOLD.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
+  //    pathB = file("_creation") / "test_image1.jpg", initCoarse = 16, rounds = 32)
+  //  val proc    = FindPerspectiveOLD(config)
+  //  waitForProcessor(proc)
+  //  println(new java.util.Date)
+  //  println("_" * 33)
+  //  proc.monitor()
+  //  proc.start()
+  //  proc.onSuccess {
+  //    case _ =>
+  //      println(new java.util.Date)
+  //  }
+
+  val config  = PhaseCorrelation.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
+                                        pathB = file("_creation") / "test_image1.jpg")
+  val proc    = PhaseCorrelation(config)
   waitForProcessor(proc)
   println(new java.util.Date)
   println("_" * 33)
@@ -30,5 +44,7 @@ object PerspectiveTest extends App {
   proc.onSuccess {
     case _ =>
       println(new java.util.Date)
+      Thread.sleep(200)
+      sys.exit()
   }
 }
