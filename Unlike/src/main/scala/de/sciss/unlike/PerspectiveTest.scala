@@ -33,8 +33,12 @@ object PerspectiveTest extends App {
   //      println(new java.util.Date)
   //  }
 
-  val config  = PhaseCorrelation.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
-                                        pathB = file("_creation") / "test_image1.jpg")
+//  val config  = PhaseCorrelation.Config(pathA = file("_creation") / "test_image1_move30_-30.jpg",
+//    pathB = file("_creation") / "test_image1.jpg",
+//    downSample = 1.0)
+  val config  = PhaseCorrelation.Config(pathA = Unlike.mkFIn(9227),
+                                        pathB = Unlike.mkFIn(9228),
+                                        downSample = 2.0)
   val proc    = PhaseCorrelation(config)
   waitForProcessor(proc)
   println(new java.util.Date)

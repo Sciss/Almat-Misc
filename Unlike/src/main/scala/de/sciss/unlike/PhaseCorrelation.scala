@@ -25,7 +25,7 @@ import scala.concurrent.blocking
 object PhaseCorrelation extends ProcessorFactory {
   type Repr = PhaseCorrelation
 
-  case class Config(pathA: File, pathB: File,
+  case class Config(pathA: File, pathB: File, downSample: Double = 1.0,
                     rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
                     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
   case class Product(translateX: Double, translateY: Double, rotate: Double, scale: Double) {
@@ -36,11 +36,16 @@ object PhaseCorrelation extends ProcessorFactory {
   protected def prepare(config: Config): Prepared = new Impl(config)
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
-    protected def body(): Product = {
-      import config._
+    import config._
 
-      val imgA  = blocking(Image.read(pathA)) // .quarter()
-      val imgB  = blocking(Image.read(pathB)) // .quarter()
+    private def readImage(path: File): Image = blocking {
+      val i = Image.read(path)
+      if (downSample > 1.0) resample(i, 1.0/downSample) else i
+    }
+
+    protected def body(): Product = {
+      val imgA  = readImage(pathA)
+      val imgB  = readImage(pathB)
 
       require(imgA sameSize imgB, "Images must have the same size")
       val w     = imgA.width
@@ -81,7 +86,7 @@ object PhaseCorrelation extends ProcessorFactory {
       val shiftY  = if (pp.y > imgC.height/2) pp.y - imgC.height else pp.y
 
       // println(s"Peak at ($shiftX, $shiftY)")
-      Product(translateX = shiftX, translateY = shiftY, rotate = 0.0, scale = 1.0)
+      Product(translateX = shiftX * downSample, translateY = shiftY * downSample, rotate = 0.0, scale = 1.0)
     }
   }
 
@@ -226,6 +231,44 @@ object PhaseCorrelation extends ProcessorFactory {
       }
       y += 1
     }
+  }
+
+  def resample(image: Image, factor: Double): Image = {
+    val r       = Resample(Resample.Quality.High)
+    val dataIn  = image.data
+    val wi      = image.width
+    val hi      = image.height
+    val wr      = (wi  * factor + 0.5).toInt
+    val hr      = (hi * factor + 0.5).toInt
+    val rowIn   = new Array[Double](wi + 1)
+    val colIn   = new Array[Double](hi + 1)
+    val dataTmp = new Array[Double](wr * wi)
+    val colOut  = new Array[Double](wr)
+    val dataOut = new Array[Double](wr * hr)
+
+    var y = 0
+    while (y < hi) {
+      System.arraycopy(dataIn, y * wi, rowIn, 0, wi)
+      rowIn(wi) = rowIn(wi - 1) // padding
+      r.process(src = rowIn, srcOff = 0, dest = dataTmp, destOff = y * wr, length = wr, factor = factor)
+      y += 1
+    }
+    var x = 0
+    while (x < wr) {
+      y = 0
+      while (y < hi) {
+        colIn(y) = dataTmp(y * wr + x)
+        y += 1
+      }
+      r.process(src = colIn, srcOff = 0, dest = colOut, destOff = 0, length = hr, factor = factor)
+      y = 0
+      while (y < hr) {
+        dataOut(y * wr + x) = colOut(y)
+        y += 1
+      }
+      x += 1
+    }
+    new Image(dataOut, width = wr, height = hr)
   }
 }
 trait PhaseCorrelation extends ProcessorLike[PhaseCorrelation.Product, PhaseCorrelation] {
