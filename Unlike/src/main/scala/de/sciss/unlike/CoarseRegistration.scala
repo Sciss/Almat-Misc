@@ -13,15 +13,26 @@
 
 package de.sciss.unlike
 
+import java.util
+
 import de.sciss.file._
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
 
-object CoarseRegistration extends App {
-  val pathA = file("_creation") / "test_image1_move30_-30.jpg"
-  val pathB = file("_creation") / "test_image1.jpg"
+import scala.swing.Swing
 
-  val imgA  = Image.read(pathA)
-  val imgB  = Image.read(pathB)
+object CoarseRegistration extends App {
+//  val pathA  = file("_creation") / "test_image1_move30_-30.jpg"
+//  val pathB  = file("_creation") / "test_image1.jpg"
+//  val imgA    = Image.read(pathA)
+//  val imgB    = Image.read(pathB)
+
+  import Unlike.mkFIn
+
+  val pathA = mkFIn(9227)
+  val pathB = mkFIn(9228)
+
+  val imgA  = Image.read(pathA).quarter()
+  val imgB  = Image.read(pathB).quarter()
 
   require(imgA sameSize imgB)
   val w     = imgA.width
@@ -31,6 +42,7 @@ object CoarseRegistration extends App {
 
   val fft   = new DoubleFFT_2D(/* rows = */ w, /* columns = */ h)
 
+  // XXX TODO -- here we could multiply by a Hann window first
   val dataA = realToComplex(imgA.data)
   val dataB = realToComplex(imgB.data)
 
@@ -52,7 +64,15 @@ object CoarseRegistration extends App {
   assert(dataC.length == w * h)
   val imgC    = new Image(dataC, width = w, height = h)
 
-  imgC.plot() // mul = 0.5 / math.Pi, add = 0.5)
+  val pp      = findPeak(imgC)
+  // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
+  val shiftX  = if (pp.x > imgC.width /2) imgC.width  - pp.x else pp.x
+  val shiftY  = if (pp.y > imgC.height/2) imgC.height - pp.y else pp.y
+  println(s"Peak at ($shiftX, $shiftY)")
+
+  normalize(dataC)
+  val view = imgC.plot(zoom = 0.25) // mul = 0.5 / math.Pi, add = 0.5
+  Swing.onEDT { view.zoom = 1.0 }
 
   /** Element-wise multiplication, replacing the contents of `a`. */
   def elemMul(a: Array[Double], b: Array[Double]): Unit = {
@@ -87,6 +107,25 @@ object CoarseRegistration extends App {
     }
   }
 
+  def findPeak(image: Image): IntPoint2D = {
+    val data = image.data
+    val n = data.length
+    var i = 0
+    var j = 0
+    var max = Double.NegativeInfinity
+    while (i < n) {
+      val d = data(i)
+      if (d > max) {
+        max = d
+        j   = i
+      }
+      i += 1
+    }
+    val x = j % image.width
+    val y = j / image.width
+    IntPoint2D(x, y)
+  }
+
   /** Creates a new array double the size with real from input and zero imag. */
   def realToComplex(in: Array[Double]): Array[Double] = {
     val n   = in.length
@@ -116,6 +155,31 @@ object CoarseRegistration extends App {
       j += 1
     }
     out
+  }
+
+  def normalize(data: Array[Double]): Unit = {
+    val n = data.length
+    var i = 0
+    var min = Double.PositiveInfinity
+    var max = Double.NegativeInfinity
+    while (i < n) {
+      val d = data(i)
+      if (d < min) min = d
+      if (d > max) max = d
+      i += 1
+    }
+    if (min < max) {
+      val add = -min
+      val mul = 1.0 / (max - min)
+      i = 0
+      while (i < n) {
+        data(i) = (data(i) + add) * mul
+        i += 1
+      }
+
+    } else if (min == max) {
+      util.Arrays.fill(data, 0.0)
+    }
   }
 
   /** Taking the complex conjugate and replacing the input. */

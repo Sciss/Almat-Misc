@@ -16,7 +16,7 @@ package de.sciss.unlike
 import java.awt.EventQueue
 import java.awt.image.BufferedImage
 
-import scala.swing.{Dimension, Graphics2D, Component, Swing}
+import scala.swing.{ScrollPane, Dimension, Graphics2D, Component, Swing}
 
 object ImageView {
   def apply(i: Image): ImageView = new Impl(i)
@@ -29,19 +29,6 @@ object ImageView {
     private[this] var _add   : Double   = 0.0
     private[this] var _invert: Boolean  = false
 
-    //    private[this] val pntChecker: Paint = {
-    //      val sizeH = 32
-    //      val img = new BufferedImage(sizeH << 1, sizeH << 1, BufferedImage.TYPE_INT_ARGB)
-    //
-    //      for (x <- 0 until img.getWidth) {
-    //        for (y <- 0 until img.getHeight) {
-    //          img.setRGB(x, y, if (((x / sizeH) ^ (y / sizeH)) == 0) 0xFF9F9F9F else 0xFF7F7F7F)
-    //        }
-    //      }
-    //
-    //      new TexturePaint(img, new Rectangle(0, 0, img.getWidth, img.getHeight))
-    //    }
-
     def zoom: Double = {
       requireEDT()
       _zoom
@@ -51,7 +38,7 @@ object ImageView {
       requireEDT()
       if (_zoom != value) {
         _zoom = value
-        updateAwt()
+        invalidateAwt()
         updateSize()
       }
     }
@@ -98,9 +85,13 @@ object ImageView {
     private[this] var awtImage: BufferedImage = _
 
     private[this] def updateAndRepaint(): Unit = {
-      updateAwt()
+      invalidateAwt()
       comp.repaint()
     }
+
+    private[this] var _awtValid = false
+
+    private[this] def invalidateAwt(): Unit = _awtValid = false
 
     private[this] def updateAwt(): Unit =
       awtImage = img.toAwt(mul = _mul, add = _add, invert = _invert)
@@ -109,6 +100,11 @@ object ImageView {
       opaque = true
       override protected def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
+        if (!_awtValid) {
+          updateAwt()
+          _awtValid = true
+        }
+
         val atOrig = g.getTransform
         if (_zoom != 1.0) g.scale(_zoom, _zoom)
         // g.setPaint(pntChecker)
@@ -118,16 +114,18 @@ object ImageView {
       }
     }
 
+    private[this] lazy val scroll = new ScrollPane(comp)
+
     private[this] def updateSize(): Unit = {
       val wi  = (img.width  * _zoom).toInt
       val hi  = (img.height * _zoom).toInt
       val dim = new Dimension(wi, hi)
-      comp.preferredSize = dim
-      comp.peer.setSize(dim)
+      comp  .preferredSize = dim
+      comp.peer.setSize     (dim)
+      scroll.preferredSize = dim
     }
 
     private[this] def init(): Unit = {
-      updateAwt()
       updateSize()
       comp
     }
@@ -137,7 +135,7 @@ object ImageView {
 
     def component: Component = {
       requireEDT()
-      comp
+      scroll
     }
   }
 }
