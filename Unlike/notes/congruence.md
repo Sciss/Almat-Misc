@@ -16,3 +16,8 @@ Result: Product(IntPoint2D(134,-58),IntPoint2D(-122,-90),IntPoint2D(70,86),IntPo
 
 Result: Product(IntPoint2D(99,37),IntPoint2D(45,37),IntPoint2D(74,100),IntPoint2D(100,98),0.108918909043577)
 Result: Product(IntPoint2D(74,100),IntPoint2D(96,100),IntPoint2D(74,100),IntPoint2D(98,100),0.1292718797132856)
+
+--------------
+
+- http://www3.nd.edu/~kwb/ThomasKareemBowyerIGARSS_2012.pdf
+- http://www.codeproject.com/Articles/95453/Automatic-Image-Stitching-with-Accord-NET

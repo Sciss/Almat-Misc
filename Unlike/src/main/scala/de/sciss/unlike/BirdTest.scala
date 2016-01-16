@@ -13,14 +13,14 @@
 
 package de.sciss.unlike
 
-import java.awt.RenderingHints
+import java.awt.{Color, RenderingHints}
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 
 import de.sciss.file._
-import de.sciss.kollflitz
+import de.sciss.{numbers, kollflitz}
 import de.sciss.processor.Processor
 
 import scala.concurrent.duration.Duration
@@ -55,29 +55,45 @@ object BirdTest extends App {
 
     import kollflitz.Ops._
 
-    val tx0     = products.map(_.translateX).integrate
-    val ty0     = products.map(_.translateY).integrate
-    val meanTx  = tx0.mean
-    val meanTy  = ty0.mean
+    val tx0     = 0.0 +: products.map(_.translateX).integrate
+    val ty0     = 0.0 +: products.map(_.translateY).integrate
+    val totTx   = tx0.last
+    val totTy   = ty0.last
+
+    val tx1     = tx0.zipWithIndex.map { case (in, idx) =>
+      import numbers.Implicits._
+      val off = totTx * idx.linlin(0, numFramesM, 0, -1)
+      in /* - meanTx */ + off
+    }
+    val ty1     = ty0.zipWithIndex.map { case (in, idx) =>
+      import numbers.Implicits._
+      val off = totTy * idx.linlin(0, numFramesM, 0, -1)
+      in /* - meanTy */ + off
+    }
+
+    val meanTx  = tx1.mean
+    val meanTy  = ty1.mean
 
     // println(s"meanTx = $meanTx, meanTy = $meanTy")
 
-    val tx      = (0.0 +: tx0).map(_ - meanTx)
-    val ty      = (0.0 +: ty0).map(_ - meanTy)
+    val tx      = tx1.map(_ - meanTx)
+    val ty      = ty1.map(_ - meanTy)
 
     val products1 = tx zip ty
     products1.zipWithIndex.foreach { case ((translateX, translateY), frameOff) =>
-      //      val prod = prod0.copy(translateX = prod0.translateX - meanTx,
-      //                            translateY = prod0.translateY - meanTy)
       blocking {
         val fOut = mkBirdOut(frameOff + 1)
         if (!fOut.exists()) {
           val imageIn   = ImageIO.read(mkBirdIn(frameOff + startFrame))
+          val imgW      = imageIn.getWidth
+          val imgH      = imageIn.getHeight
           val imageOut  = {
             // Note: JPG export fails with `TYPE_INT_ARGB`!
-            val res = new BufferedImage(imageIn.getWidth, imageIn.getHeight, BufferedImage.TYPE_INT_RGB)
+            val res = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_RGB)
             val g   = res.createGraphics()
-            g.drawImage(imageIn, 0, 0, null)  // "background"
+            // g.drawImage(imageIn, 0, 0, null)  // "background"
+            g.setColor(Color.black)
+            g.fillRect(0, 0, imgW, imgH)
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING , RenderingHints.VALUE_ANTIALIAS_ON         )
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
             g.setRenderingHint(RenderingHints.KEY_RENDERING    , RenderingHints.VALUE_RENDER_QUALITY       )
