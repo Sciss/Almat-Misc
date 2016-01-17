@@ -45,6 +45,19 @@ package object unlike {
     }
   }
 
+  def runAndMonitor(p: ProcessorLike[Any, Any] with Processor.Prepared,
+                    exit: Boolean = false, printResult: Boolean = true): Unit = {
+    waitForProcessor(p)
+    println("_" * 33)
+    p.monitor(printResult = printResult)
+    if (exit) p.onSuccess {
+      case _ =>
+        Thread.sleep(200)
+        sys.exit()
+    }
+    p.start()
+  }
+
   def runGUI(block: => Unit): Unit =
     onEDT {
       try {

@@ -16,21 +16,27 @@ package de.sciss.unlike
 import java.util
 
 import de.sciss.file._
+import de.sciss.play.json.AutoFormat
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
+import play.api.libs.json.Format
 
 import scala.concurrent.blocking
 
 object PhaseCorrelation extends ProcessorFactory {
   type Repr = PhaseCorrelation
 
-  case class Config(pathA: File, pathB: File, downSample: Double = 1.0,
-                    rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
-                    scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
+  case class Config(pathA: File, pathB: File, settings: Settings = Settings())
+
+  case class Settings(downSample: Double = 1.0,
+    rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
+    scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
 
   object Product {
     def identity: Product = Product(translateX = 0.0, translateY = 0.0, rotate = 0.0, scale = 1.0)
+
+    implicit val format: Format[Product] = AutoFormat[Product]
   }
   case class Product(translateX: Double, translateY: Double, rotate: Double, scale: Double) {
     override def toString =
@@ -41,6 +47,7 @@ object PhaseCorrelation extends ProcessorFactory {
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     import config._
+    import settings._
 
     private def readImage(path: File): Image = blocking {
       val i = Image.read(path)

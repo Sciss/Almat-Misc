@@ -42,8 +42,7 @@ object PerspectiveTest extends App {
 //    downSample = 2.0)
 
   val config  = PhaseCorrelation.Config(pathA = mkBird(1001),
-                                        pathB = mkBird(1002),
-                                        downSample = 1.0)
+                                        pathB = mkBird(1002))
 
 //  val config  = PhaseCorrelation.Config(
 //    pathA = file("_creation") / "test_image3.png",

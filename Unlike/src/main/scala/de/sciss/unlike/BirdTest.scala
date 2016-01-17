@@ -41,8 +41,7 @@ object BirdTest extends App {
       val inFrameB = inFrameA + 1
       val config = PhaseCorrelation.Config(
         pathA = mkBirdIn(inFrameA),
-        pathB = mkBirdIn(inFrameB),
-        downSample = 1.0)
+        pathB = mkBirdIn(inFrameB))
 
       val pCorr = PhaseCorrelation(config)
       pCorr.start()
