@@ -42,6 +42,15 @@ object EstimateVideoMotion extends ProcessorFactory {
 
   protected def prepare(config: Config): Prepared = new Impl(config)
 
+  def read(config: Config): Product = {
+    import config._
+    val dir = outputDir.get
+    startFrame to endFrame map { frame =>
+      val f = (dir / input.name.format(frame)).replaceExt("json")
+      JsonUtil.read[Frame](f)
+    }
+  }
+
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     import config._
 
