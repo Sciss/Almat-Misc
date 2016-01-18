@@ -46,8 +46,8 @@ object PhaseCorrelation extends ProcessorFactory {
 
   protected def prepare(config: Config): Prepared = new Impl(config)
 
-  def prepareImage(path: File, config: Config): Image = blocking {
-    import config.settings.downSample
+  def prepareImage(path: File, settings: Settings): Image = blocking {
+    import settings.downSample
     val image0 = Image.read(path)
     val image  = if (downSample > 1.0) resample(image0, 1.0/downSample) else image0
     applyWindow(image)
@@ -72,8 +72,8 @@ object PhaseCorrelation extends ProcessorFactory {
     * @param imgTB  as returned by `prepareData`
     * @param fft    as returned by `prepareFFT`
     */
-  def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, config: Config): Product = {
-    import config.settings.downSample
+  def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, settings: Settings): Product = {
+    import settings.downSample
 
     val dataTmp = imgTB.data.clone()
     complexConj(dataTmp)
@@ -98,8 +98,8 @@ object PhaseCorrelation extends ProcessorFactory {
     import config._
 
     protected def body(): Product = {
-      val imgA  = prepareImage(pathA, config)
-      val imgB  = prepareImage(pathB, config)
+      val imgA  = prepareImage(pathA, settings)
+      val imgB  = prepareImage(pathB, settings)
 
       require(imgA sameSize imgB, "Images must have the same size")
 
@@ -112,7 +112,7 @@ object PhaseCorrelation extends ProcessorFactory {
       // Therefore, the formula (3) in Thomas et al. becomes:
       // F1 F2∗ / | F1 F2∗ |
 
-      process(imgTA = dataA, imgTB = dataB, fft = fft, config = config)
+      process(imgTA = dataA, imgTB = dataB, fft = fft, settings = settings)
     }
   }
 

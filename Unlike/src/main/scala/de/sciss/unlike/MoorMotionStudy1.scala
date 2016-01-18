@@ -27,10 +27,9 @@ object MoorMotionStudy1 extends App {
   val renderDir   = base / "moor_8024_out"
 
   val estConf = EstimateVideoMotion.Config(
-    input       = base / "moor_8024" / "moor_8024-%05d.jpg",
-    outputDir   = Some(jsonDir),
-    startFrame  = startFrame,
-    endFrame    = endFrame
+    input   = base / "moor_8024" / "moor_8024-%05d.jpg",
+    output  = Some(jsonDir / "moor_8024-%05d-%05d.json"),
+    frames  = startFrame to endFrame
   )
 
   if (mode == "ANALYZE") {
@@ -39,9 +38,9 @@ object MoorMotionStudy1 extends App {
     runAndMonitor(p, exit = true, printResult = false)
 
   } else if (mode == "WRITE") {
-    val read = Future(blocking(EstimateVideoMotion.read(estConf)))
+    val read    = Future(blocking(EstimateVideoMotion.read(estConf)))
     println("Read JSON...")
-    val prod = Await.result(read, Duration.Inf)
+    val prod    = PhaseCorrelation.Product.identity +: Await.result(read, Duration.Inf)
 
     val input   = estConf.input
     val output  = renderDir / "moor_8024-out-%05d.jpg"
