@@ -21,3 +21,10 @@ Result: Product(IntPoint2D(74,100),IntPoint2D(96,100),IntPoint2D(74,100),IntPoin
 
 - http://www3.nd.edu/~kwb/ThomasKareemBowyerIGARSS_2012.pdf
 - http://www.codeproject.com/Articles/95453/Automatic-Image-Stitching-with-Accord-NET
+- https://en.wikipedia.org/wiki/Speeded_up_robust_features
+
+--------------
+
+Idea: 'double-check' mode: not only do we correlate (n, n+1), (n+1, n+2) but also (n, n+2). If the latter
+has a higher peak than both of the former, we use it as the more "faithful" measure, and calculate (n+1)
+by rescaling (n, n+1) and (n+2) with respect to an overall (n, n+2).

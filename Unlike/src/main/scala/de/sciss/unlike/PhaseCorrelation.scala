@@ -34,77 +34,87 @@ object PhaseCorrelation extends ProcessorFactory {
     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
 
   object Product {
-    def identity: Product = Product(translateX = 0.0, translateY = 0.0, rotate = 0.0, scale = 1.0)
+    def identity: Product = Product(peak = 1.0)
 
     implicit val format: Format[Product] = AutoFormat[Product]
   }
-  case class Product(translateX: Double, translateY: Double, rotate: Double, scale: Double) {
+  case class Product(translateX: Double = 0.0, translateY: Double = 0.0, rotate: Double = 0.0, scale: Double = 1.0,
+                     peak: Double) {
     override def toString =
       f"Product(translate = ($translateX%1.1f, $translateY%1.1f), rotate = $rotate%1.1f, scale = $scale%1.3f)"
   }
 
   protected def prepare(config: Config): Prepared = new Impl(config)
 
+  def prepareImage(path: File, config: Config): Image = blocking {
+    import config.settings.downSample
+    val image0 = Image.read(path)
+    val image  = if (downSample > 1.0) resample(image0, 1.0/downSample) else image0
+    applyWindow(image)
+    image
+  }
+
+  /** @param image  as returned by `prepareImage`. */
+  def prepareFFT(image: Image): DoubleFFT_2D =
+    new DoubleFFT_2D(/* rows = */ image.height, /* columns = */ image.width)
+
+  /** @param image  as returned by `prepareImage`
+    * @param fft    as returned by `prepareFFT`
+    * @return data to go into `process`
+    */
+  def prepareData(image: Image, fft: DoubleFFT_2D): Image = {
+    val data = realToComplex(image.data)
+    blocking(fft.complexForward(data))
+    new Image(data, width = image.width << 1, height = image.height)
+  }
+
+  /** @param imgTA  as returned by `prepareData`
+    * @param imgTB  as returned by `prepareData`
+    * @param fft    as returned by `prepareFFT`
+    */
+  def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, config: Config): Product = {
+    import config.settings.downSample
+
+    val dataTmp = imgTB.data.clone()
+    complexConj(dataTmp)
+    elemMul(dataTmp, imgTA.data)
+    elemNorm(dataTmp)
+
+    blocking(fft.complexInverse(dataTmp, true))
+
+    complexToRealInPlace(dataTmp)
+    val w = imgTA.width >> 1
+    val h = imgTA.height
+    // assert(dataC.length == w * h)
+    val imgC = new Image(dataTmp, width = w, height = h)
+
+    val peak = findPeakCentroid(imgC)
+    if (downSample == 1.0) peak else
+      peak.copy(translateX = peak.translateX * downSample, translateY = peak.translateY * downSample,
+        rotate = 0.0, scale = 1.0)
+  }
+
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     import config._
-    import settings._
-
-    private def readImage(path: File): Image = blocking {
-      val i = Image.read(path)
-      if (downSample > 1.0) resample(i, 1.0/downSample) else i
-    }
 
     protected def body(): Product = {
-      val imgA  = readImage(pathA)
-      val imgB  = readImage(pathB)
+      val imgA  = prepareImage(pathA, config)
+      val imgB  = prepareImage(pathB, config)
 
       require(imgA sameSize imgB, "Images must have the same size")
-      val w     = imgA.width
-      val h     = imgA.height
 
-      // println(s"w = $w, h = $h, size = ${imgA.data.length}")
-
-      val fft   = new DoubleFFT_2D(/* rows = */ h, /* columns = */ w)
-
-      applyWindow(imgA)
-      applyWindow(imgB)
-
-      val dataA = blocking(realToComplex(imgA.data))
-      val dataB = blocking(realToComplex(imgB.data))
-
-      fft.complexForward(dataA)
-      fft.complexForward(dataB)
+      val fft   = prepareFFT(imgA)
+      val dataA = prepareData(imgA, fft)
+      val dataB = prepareData(imgB, fft)
 
       // Note: for the magnitudes it doesn't matter whether
       // you multiply with the conjugate matrix or the non-conjugate matrix.
       // Therefore, the formula (3) in Thomas et al. becomes:
       // F1 F2∗ / | F1 F2∗ |
 
-      complexConj(dataB)
-      elemMul(dataA, dataB)
-      elemNorm(dataA)
-
-      blocking(fft.complexInverse(dataA, true))
-
-      val dataC   = complexToReal(dataA)
-      assert(dataC.length == w * h)
-      val imgC    = new Image(dataC, width = w, height = h)
-
-      // val pp      = findPeak(imgC)
-      val (ppx, ppy) = findPeakCentroid(imgC)
-      // val pp      = IntPoint2D(pp0.x << 1, pp0.y << 1)  // XXX TODO --- do we loose factor 2 precision?
-      // println(s"Peak at (${pp.x}, ${pp.y})")
-      val shiftX  = if (ppx > imgC.width /2) ppx - imgC.width  else ppx
-      val shiftY  = if (ppy > imgC.height/2) ppy - imgC.height else ppy
-
-      // println(s"Peak at ($shiftX, $shiftY)")
-      Product(translateX = shiftX * downSample, translateY = shiftY * downSample, rotate = 0.0, scale = 1.0)
+      process(imgTA = dataA, imgTB = dataB, fft = fft, config = config)
     }
   }
-
-  //  normalize(dataC)
-  //  val view = imgC.plot(zoom = 0.25) // mul = 0.5 / math.Pi, add = 0.5
-  //  Swing.onEDT { view.zoom = 1.0 }
 
   /** Element-wise multiplication, replacing the contents of `a`. */
   def elemMul(a: Array[Double], b: Array[Double]): Unit = {
@@ -160,11 +170,11 @@ object PhaseCorrelation extends ProcessorFactory {
     IntPoint2D(x, y)
   }
 
-  def findPeakCentroid(image: Image): (Double, Double) = {
+  def findPeakCentroid(image: Image): Product = {
     val data = image.data
     val w = image.width
     val h = image.height
-    val n = data.length
+    val n = w * h // NOT: data.length - as we re-use a larger array
     var i = 0
     var j = 0
     var max = Double.NegativeInfinity
@@ -179,7 +189,7 @@ object PhaseCorrelation extends ProcessorFactory {
     val px = j % w
     val py = j / w
 
-    def calc(nSz: Int): (Double, Double) = {
+    def calc(nSz: Int): Product = {
       var cx = 0.0
       var cy = 0.0
       var cs = 0.0
@@ -204,43 +214,22 @@ object PhaseCorrelation extends ProcessorFactory {
       cx /= cs
       cy /= cs
 
-      (cx, cy)
+      Product(translateX = cx, translateY = cy, peak = cs)
     }
-
-//    var cx = max * px
-//    var cy = max * py
-//    var cs = max
-//
-//    @tailrec
-//    def move(x: Int, y: Int, p: Double, dx: Int, dy: Int, c: Int = 0): Unit = if (c < 1) {
-//      val nx = x + dx
-//      val ny = y + dy
-//      if (nx >= 0 && nx < w && ny >= y && ny < h) {
-//        val q = image.pixel(nx, ny)
-//        if (q <= p) {
-//          cx += q * nx
-//          cy += q * ny
-//          cs += q
-//          move(x = nx, y = ny, p = q, dx = dx, dy = dy, c = c + 1)
-//        }
-//      }
-//    }
-//
-//    move(x = px, y = py, p = max, dx = -1, dy =  0)
-//    move(x = px, y = py, p = max, dx =  1, dy =  0)
-//    move(x = px, y = py, p = max, dx =  0, dy = -1)
-//    move(x = px, y = py, p = max, dx =  0, dy =  1)
-//
-//    move(x = px, y = py, p = max, dx = -1, dy = -1)
-//    move(x = px, y = py, p = max, dx =  1, dy = -1)
-//    move(x = px, y = py, p = max, dx = -1, dy =  1)
-//    move(x = px, y = py, p = max, dx =  1, dy =  1)
 
     // somehow running this with two different even/odd
     // radiuses and averaging the result seems the most precise...
-    val (ex1, ey1) = calc(1)
-    val (ex2, ey2) = calc(2)
-    ((ex1 + ex2) / 2, (ey1 + ey2) / 2)
+    val e1 = calc(1)
+    val e2 = calc(2)
+
+    val ppx     = (e1.translateX + e2.translateX)/2
+    val ppy     = (e1.translateY + e2.translateY)/2
+    val shiftX  = if (ppx > w/2) ppx - w else ppx
+    val shiftY  = if (ppy > h/2) ppy - h else ppy
+
+    Product(translateX = shiftX,
+            translateY = shiftY,
+            peak       = (e1.peak + e2.peak)/2)
   }
 
   /** Creates a new array double the size with real from input and zero imag. */
@@ -272,6 +261,20 @@ object PhaseCorrelation extends ProcessorFactory {
       j += 1
     }
     out
+  }
+
+  /** Replaces complex with real in place. */
+  def complexToRealInPlace(data: Array[Double]): Unit = {
+    val n   = data.length
+    require(n % 2 == 0)
+    var i   = 0
+    var j   = 0
+    while (i < n) {
+      val re = data(i)
+      data(j) = re
+      i += 2
+      j += 1
+    }
   }
 
   def normalize(data: Array[Double]): Unit = {

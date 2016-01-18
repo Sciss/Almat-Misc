@@ -1,5 +1,5 @@
 /*
- *  MoorTest.scala
+ *  MoorMotionStudy1.scala
  *  (Unlike)
  *
  *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
@@ -18,7 +18,7 @@ import de.sciss.file._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Await, blocking}
 
-object MoorTest extends App {
+object MoorMotionStudy1 extends App {
   val base        = userHome / "Documents" / "projects" / "Unlike"
   val mode        = "WRITE"
   val startFrame  =     1 + 60
