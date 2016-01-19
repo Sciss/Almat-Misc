@@ -45,7 +45,7 @@ object MoorMotionStudy1 extends App {
     val input   = estConf.input
     val output  = renderDir / "moor_8024-out-%05d.jpg"
     val renCfg  = RenderVideoMotion.Config(input = input, output = output, format = ImageFormat.JPG(),
-      startFrame = startFrame, endFrame = endFrame, transforms = prod /* , missing = RenderVideoMotion.Missing.Truncate */)
+      frames = (startFrame to endFrame) zip prod /* , missing = RenderVideoMotion.Missing.Truncate */)
     val p = RenderVideoMotion(renCfg)
     println("Render...")
     p.onFailure {

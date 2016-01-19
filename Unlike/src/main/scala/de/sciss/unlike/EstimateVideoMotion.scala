@@ -68,6 +68,8 @@ object EstimateVideoMotion extends ProcessorFactory {
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     import config._
 
+    override def toString = s"EstimateVideoMotion@${hashCode.toHexString}"
+
     protected def body(): Product = {
 
       def mkInput(fr: Int): File = {

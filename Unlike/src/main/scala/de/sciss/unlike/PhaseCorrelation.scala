@@ -97,6 +97,8 @@ object PhaseCorrelation extends ProcessorFactory {
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     import config._
 
+    override def toString = s"PhaseCorrelation@${hashCode.toHexString}"
+
     protected def body(): Product = {
       val imgA  = prepareImage(pathA, settings)
       val imgB  = prepareImage(pathB, settings)

@@ -28,3 +28,14 @@ Result: Product(IntPoint2D(74,100),IntPoint2D(96,100),IntPoint2D(74,100),IntPoin
 Idea: 'double-check' mode: not only do we correlate (n, n+1), (n+1, n+2) but also (n, n+2). If the latter
 has a higher peak than both of the former, we use it as the more "faithful" measure, and calculate (n+1)
 by rescaling (n, n+1) and (n+2) with respect to an overall (n, n+2).
+
+Possibilities:
+- p(a,c) &gt; max (p(a,b), p(b,c))
+- p(a,c) &gt; min (p(a,b), p(b,c))
+- p(a,c) &gt; mean(p(a,b), p(b,c))
+
+We'll start with the mean approach.
+
+A   B   C   D
+  p1  p2  p3
+    p4  p5

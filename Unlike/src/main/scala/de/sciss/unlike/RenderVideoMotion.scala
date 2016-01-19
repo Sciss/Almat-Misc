@@ -15,7 +15,7 @@ package de.sciss.unlike
 
 import java.awt.geom.AffineTransform
 import java.awt.{RenderingHints, Color}
-import java.awt.image.BufferedImage
+import java.awt.image.{BufferedImageOp, BufferedImage}
 import javax.imageio.ImageIO
 
 import de.sciss.file._
@@ -23,6 +23,7 @@ import de.sciss.numbers
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorLike, ProcessorFactory}
 
+import scala.annotation.tailrec
 import scala.concurrent.blocking
 
 object RenderVideoMotion extends ProcessorFactory {
@@ -35,12 +36,11 @@ object RenderVideoMotion extends ProcessorFactory {
   sealed trait Missing
 
   case class Config(input: File, output: File, format: ImageFormat = ImageFormat.PNG,
-                    startFrame: Int, endFrame: Int, resetOutputCount: Boolean = true,
-                    transforms: Vec[Frame], accumulate: Boolean = true,
+                    frames: Vec[(Int, Frame)], resetOutputCount: Boolean = true,
+                    accumulate: Boolean = true,
                     moveToLast: Boolean = true, missing: Missing = Missing.Fill(),
+                    filters: Seq[BufferedImageOp] = Nil,
                     verbose: Boolean = false) {
-
-    require(endFrame - startFrame + 1 == transforms.size, s"Expecting ${transforms.size} frames")
   }
 
   type Product = Unit
@@ -49,9 +49,54 @@ object RenderVideoMotion extends ProcessorFactory {
 
   protected def prepare(config: RenderVideoMotion.Config): Prepared = new Impl(config)
 
+  /** @param weight combination for two adjacent peaks, such as `math.min`, `math.max` or mean (default). */
+  def twoStepOptimization(frames: Vec[Int], transforms: Map[(Int, Int), Frame],
+                          weight: (Double, Double) => Double = { (a, b) => (a + b)/2 }): Vec[(Int, Frame)] = {
+    @tailrec
+    def loop(in: Vec[Int], out: Vec[(Int, Frame)]): Vec[(Int, Frame)] =
+      in match {
+        case a +: (tail1 @ b +: tail0) =>
+          val ab = transforms((a, b))
+
+          tail0 match {
+            case c +: tail =>
+              val bc = transforms((b, c))
+              val ac = transforms((a, c))
+
+              val wPeak = weight(ab.peak, bc.peak)
+              if (wPeak < ac.peak) {
+                val p1x = ab.translateX + bc.translateX
+                val p1y = ab.translateY + bc.translateY
+                import numbers.Implicits._
+                val p2x = ab.translateX.linlin(0, p1x, 0, ac.translateX)
+                val p2y = ab.translateY.linlin(0, p1y, 0, ac.translateY)
+                val p3x = ac.translateX - p2x
+                val p3y = ac.translateY - p2y
+                val abT = ab.copy(translateX = p2x, translateY = p2y)
+                val bcT = bc.copy(translateX = p3x, translateY = p3y)
+                // drop `a` and `b`, add two transformed pairs
+                loop(in = tail0, out = out :+ (b -> abT) :+ (c -> bcT))
+
+              } else {  // drop `a`, keep first pair
+                loop(in = tail1, out = out :+ (b -> ab))
+              }
+
+            case _ =>
+              out :+ (b -> ab)
+          }
+
+        case _ => out
+      }
+
+    val out0 = frames.headOption.fold[Vec[(Int, Frame)]](Vector.empty)(a => Vector(a -> Frame.identity))
+    loop(in = frames, out = out0)
+  }
+
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
+    override def toString = s"RenderVideoMotion@${hashCode.toHexString}"
+
     protected def body(): Unit = {
-      import config.{transforms => transforms0, _}
+      import config._
 
       def mkFile(template: File, fr: Int): File = {
         val name = template.name.format(fr)
@@ -61,12 +106,12 @@ object RenderVideoMotion extends ProcessorFactory {
       def mkInput (fr: Int): File = mkFile(input , fr)
       def mkOutput(fr: Int): File = mkFile(output, fr)
 
-      val numFramesM  = endFrame - startFrame
-      val numFrames   = numFramesM + 1
+      val numFrames   = frames.size   // numFramesM + 1
+      val numFramesM  = numFrames - 1 // endFrame - startFrame
 
-      val outFrOff    = if (resetOutputCount) 1 else startFrame
+      val outFrOff    = if (resetOutputCount) 1 else frames.headOption.fold(1)(_._1)
 
-      var transforms = transforms0
+      var transforms = frames.map(_._2) // transforms0
       transforms match {
         case head +: tail if accumulate =>
           transforms = tail.scanLeft(head) { (pred, next) =>
@@ -119,12 +164,12 @@ object RenderVideoMotion extends ProcessorFactory {
 
       if (verbose) println(f"dx/y ($dx%1.2f, $dy%1.2f), dw/h ($dw%d, $dh%d)")
 
-      transforms.zipWithIndex.foreach { case (prod, frameOff) =>
+      (transforms zip frames.map(_._1)).zipWithIndex.foreach { case ((prod, frameIn), frameOff) =>
         import prod.{translateX, translateY}
         blocking {
           val fOut = mkOutput(frameOff + outFrOff)
           if (!fOut.exists()) {
-            val fIn       = mkInput(frameOff + startFrame)
+            val fIn       = mkInput(frameIn)
             val imageIn   = ImageIO.read(fIn)
             val imgWIn    = imageIn.getWidth
             val imgHIn    = imageIn.getHeight
@@ -141,7 +186,8 @@ object RenderVideoMotion extends ProcessorFactory {
               g.setRenderingHint(RenderingHints.KEY_RENDERING    , RenderingHints.VALUE_RENDER_QUALITY       )
               val at = AffineTransform.getTranslateInstance(translateX + dx, translateY + dy)
               g.transform(at)
-              g.drawImage(imageIn, 0, 0, null)
+              val imageFlt = (imageIn /: filters)((in, op) => op.filter(in, null))
+              g.drawImage(imageFlt, 0, 0, null)
               g.dispose()
               res
             }
