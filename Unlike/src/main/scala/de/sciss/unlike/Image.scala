@@ -59,7 +59,7 @@ final class Image(val data: Array[Double], val width: Int, val height: Int) {
 
   def sameSize(that: Image): Boolean = this.width == that.width && this.height == that.height
 
-  def toAwt(mul: Double, add: Double, invert: Boolean): BufferedImage = {
+  def toAwt(mul: Double, add: Double, invert: Boolean = false): BufferedImage = {
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
     val g   = img.createGraphics()
 

@@ -60,7 +60,7 @@ object EstimateVideoMotion extends ProcessorFactory {
     }
   }
 
-  private def mkOutput(frameA: Int, frameB: Int, template: File): File = {
+  def mkOutput(frameA: Int, frameB: Int, template: File): File = {
     val name = template.name.format(frameA, frameB)
     template.parentOption.fold[File](file(name))(_ / name)
   }

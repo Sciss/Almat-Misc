@@ -60,7 +60,7 @@ object PhaseCorrelation extends ProcessorFactory {
 
   /** @param image  as returned by `prepareImage`
     * @param fft    as returned by `prepareFFT`
-    * @return data to go into `process`
+    * @return data to go into `process` or `preparePeak`
     */
   def prepareData(image: Image, fft: DoubleFFT_2D): Image = {
     val data = realToComplex(image.data)
@@ -72,9 +72,7 @@ object PhaseCorrelation extends ProcessorFactory {
     * @param imgTB  as returned by `prepareData`
     * @param fft    as returned by `prepareFFT`
     */
-  def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, settings: Settings): Product = {
-    import settings.downSample
-
+  def preparePeak(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D): Image = {
     val dataTmp = imgTB.data.clone()
     complexConj(dataTmp)
     elemMul(dataTmp, imgTA.data)
@@ -87,6 +85,16 @@ object PhaseCorrelation extends ProcessorFactory {
     val h = imgTA.height
     // assert(dataC.length == w * h)
     val imgC = new Image(dataTmp, width = w, height = h)
+    imgC
+  }
+
+  /** @param imgTA  as returned by `prepareData`
+    * @param imgTB  as returned by `prepareData`
+    * @param fft    as returned by `prepareFFT`
+    */
+  def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, settings: Settings): Product = {
+    import settings.downSample
+    val imgC = preparePeak(imgTA = imgTA, imgTB = imgTB, fft = fft)
 
     val peak = findPeakCentroid(imgC)
     if (downSample == 1.0) peak else

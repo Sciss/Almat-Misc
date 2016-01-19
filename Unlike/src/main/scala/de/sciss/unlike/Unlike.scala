@@ -37,7 +37,8 @@ import scala.swing.event.SelectionChanged
 import scala.swing.{Swing, ToggleButton, Action, BorderPanel, BoxPanel, Button, Component, FlowPanel, Frame, Graphics2D, Label, Menu, MenuBar, MenuItem, Orientation, Rectangle, ScrollPane}
 
 object Unlike {
-  val fBase: File = userHome / "Pictures" /"2015"/"12"/"07"
+  val fBase : File = userHome / "Pictures" /"2015"/"12"/"07"
+  val fBase2: File = userHome / "Documents" / "projects" / "Unlike" / "moor_8024"
 
   def main(args: Array[String]): Unit = Swing.onEDT(Unlike.mkFrame())
 
@@ -50,15 +51,15 @@ object Unlike {
     // val mFrame  = new SpinnerNumberModel(1, 1, 3297, 1)
     // val ggFrame = new Spinner(mFrame)
 
-    var zoomFactor  = 0.1
+    var zoomFactor  = 0.5 // 0.1
 
     var img     : BufferedImage = null  // updated in `zoom`
 
     val avCfg   = AutoView.Config()
     avCfg.small = true
 
-    val frameCfg0   = Situation(index = 9227)
-    val globalCfg0  = GlobalConfig()
+    val frameCfg0   = Situation(index = 4415 + 60 /* 9227 */)
+    val globalCfg0  = GlobalConfig(width = 1920, height = 1080)
 
     val frameCfgView    = AutoView(frameCfg0 , avCfg)
     val globalCfgView   = AutoView(globalCfg0, avCfg)
@@ -403,10 +404,11 @@ object Unlike {
 ////    cropImage(in, 145 + (430 - sizeIn)/2, 20 + (430 - sizeIn)/2, sizeIn, sizeIn)
 //  }
 
-  def mkFIn(index: Int): File = fBase / s"DSC_$index.JPG"
+  def mkFIn (index: Int): File = fBase  / s"DSC_$index.JPG"
+  def mkFIn2(index: Int): File = fBase2 / s"moor_8024-%05d.jpg".format(index)
 
   def readFrame(index: Int): BufferedImage = {
-    val fIn1      = mkFIn(index)
+    val fIn1      = mkFIn2(index)
     val imgIn     = ImageIO.read(fIn1)
     imgIn
 //    val imgCrop   = cropImage2(config, imgIn)

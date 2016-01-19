@@ -112,6 +112,17 @@ object RenderVideoMotion extends ProcessorFactory {
     res
   }
 
+  def integrate(transforms: Vec[Frame]): Vec[Frame] =
+    transforms match {
+      case head +: tail =>
+        tail.scanLeft(head) { (pred, next) =>
+          next.copy(
+            translateX = pred.translateX + next.translateX,
+            translateY = pred.translateY + next.translateY)
+        }
+      case _ => transforms
+    }
+
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     override def toString = s"RenderVideoMotion@${hashCode.toHexString}"
 
@@ -132,14 +143,7 @@ object RenderVideoMotion extends ProcessorFactory {
       val outFrOff    = if (resetOutputCount) 1 else frames.headOption.fold(1)(_._1)
 
       var transforms = frames.map(_._2) // transforms0
-      transforms match {
-        case head +: tail if accumulate =>
-          transforms = tail.scanLeft(head) { (pred, next) =>
-            next.copy(translateX = pred.translateX + next.translateX,
-                      translateY = pred.translateY + next.translateY)
-          }
-        case _ =>
-      }
+      if (accumulate) transforms = integrate(transforms)
 
       transforms match {
         case init :+ last if moveToLast =>
