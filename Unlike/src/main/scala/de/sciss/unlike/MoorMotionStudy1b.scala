@@ -62,7 +62,7 @@ object MoorMotionStudy1b extends App {
       }
 
       val map = read(c1) ++ read(c2) ++ read(c3)
-      RenderVideoMotion.twoStepOptimization(c1.frames, map)
+      RenderVideoMotion.twoStepOptimization(c1.frames, map, weight = _ max _)
     })
     println("Read JSON...")
     val frames  = Await.result(framesFut, Duration.Inf)

@@ -52,6 +52,9 @@ object RenderVideoMotion extends ProcessorFactory {
   /** @param weight combination for two adjacent peaks, such as `math.min`, `math.max` or mean (default). */
   def twoStepOptimization(frames: Vec[Int], transforms: Map[(Int, Int), Frame],
                           weight: (Double, Double) => Double = { (a, b) => (a + b)/2 }): Vec[(Int, Frame)] = {
+
+    var STATS = 0
+
     @tailrec
     def loop(in: Vec[Int], out: Vec[(Int, Frame)]): Vec[(Int, Frame)] =
       in match {
@@ -70,19 +73,27 @@ object RenderVideoMotion extends ProcessorFactory {
                 import ac.{translateX => acx, translateY => acy}
                 val p1x = abx + bcx
                 val p1y = aby + bcy
-                import numbers.Implicits._
-                // If b lies outside ac, leave it as is.
-                // The two alternatives would be:
+                val xInside = abx >= 0 && abx <= p1x
+                val yInside = aby >= 0 && aby <= p1y
+                // If b lies outside ac, we have three alternatives:
+                // - leave it as is.
                 // - clip, i.e. `abx.clip(0, p1x).linlin(...)`
                 // - fall back to `else` case (do not exchange transforms at all)
-                val p2x = if (abx >= 0 && abx <= p1x) abx.linlin(0, p1x, 0, acx) else abx
-                val p2y = if (aby >= 0 && aby <= p1y) aby.linlin(0, p1y, 0, acy) else aby
-                val p3x = acx - p2x
-                val p3y = acy - p2y
-                val abT = ab.copy(translateX = p2x, translateY = p2y)
-                val bcT = bc.copy(translateX = p3x, translateY = p3y)
-                // drop `a` and `b`, add two transformed pairs
-                loop(in = tail0, out = out :+ (b -> abT) :+ (c -> bcT))
+                if (xInside && yInside) {
+                  import numbers.Implicits._
+                  val p2x = /* if (xInside) */ abx.linlin(0, p1x, 0, acx) // else abx
+                  val p2y = /* if (yInside) */ aby.linlin(0, p1y, 0, acy) // else aby
+                  val p3x = acx - p2x
+                  val p3y = acy - p2y
+                  val abT = ab.copy(translateX = p2x, translateY = p2y)
+                  val bcT = bc.copy(translateX = p3x, translateY = p3y)
+                  STATS += 1
+                  // drop `a` and `b`, add two transformed pairs
+                  loop(in = tail0, out = out :+ (b -> abT) :+ (c -> bcT))
+                } else {
+                  // fall back
+                  loop(in = tail1, out = out :+ (b -> ab))
+                }
 
               } else {  // drop `a`, keep first pair
                 loop(in = tail1, out = out :+ (b -> ab))
@@ -96,7 +107,9 @@ object RenderVideoMotion extends ProcessorFactory {
       }
 
     val out0 = frames.headOption.fold[Vec[(Int, Frame)]](Vector.empty)(a => Vector(a -> Frame.identity))
-    loop(in = frames, out = out0)
+    val res = loop(in = frames, out = out0)
+    // println(s"twoStepOptimization - adjusted $STATS out of ${res.size} frames")
+    res
   }
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {

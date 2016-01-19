@@ -75,3 +75,6 @@ In the third case - leaving ab:
     val bcT = bc.copy(translateX = ac.translateX - ab.translateX,   // T(-1.457,0.281)
                       translateY = ac.translateY - ab.translateY)
     
+--------------------------
+
+- 4415
