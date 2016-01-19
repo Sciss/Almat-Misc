@@ -23,7 +23,7 @@ object MoorMotionStudy1b extends App {
   val base        = userHome / "Documents" / "projects" / "Unlike"
   val mode        = "WRITE"
   val startFrame  =     1 + 60
-  val endFrame    = 11945 - 60
+  val endFrame    = 11601 // 11945 - 60
   val jsonDir     = base / "moor_8024_json"
   val renderDir   = base / "moor_8024_out"
 
@@ -32,7 +32,7 @@ object MoorMotionStudy1b extends App {
     output  = Some(jsonDir / "moor_8024-%05d-%05d.json"),
     frames  = startFrame to endFrame
   )
-  val c2 = c1.copy(frames = startFrame to endFrame by 2)
+  val c2 = c1.copy(frames = startFrame     to endFrame by 2)
   val c3 = c1.copy(frames = startFrame + 1 to endFrame by 2)
 
   if (mode == "ANALYZE") {

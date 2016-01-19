@@ -39,3 +39,39 @@ We'll start with the mean approach.
 A   B   C   D
   p1  p2  p3
     p4  p5
+
+---------------
+
+    case class T(translateX: Double, translateY: Double)
+    
+    val ab = T(0.048448159424886596, 0.2011229386717556)    // peak: 0.5727960173928515
+    val bc = T(-0.044944214604982505, 0.22711427149497226)  // peak: 0.39217639163349916
+    val ac = T(-1.4088094111775717, 0.48245840171269927)    // peak: 0.7597932510138894
+    
+    val p1x = ab.translateX + bc.translateX
+    val p1y = ab.translateY + bc.translateY
+    // import numbers.Implicits._
+    val p2x = ab.translateX.linlin(0, p1x, 0, ac.translateX) // BOOM!
+    val p2y = ab.translateY.linlin(0, p1y, 0, ac.translateY)
+    val p3x = ac.translateX - p2x  // BOOM!
+    val p3y = ac.translateY - p2y
+    val abT = ab.copy(translateX = p2x, translateY = p2y)
+    val bcT = bc.copy(translateX = p3x, translateY = p3y)
+    
+Either one drops these cases or one clips the values in the interpolation.
+Or one leaves ab and uses bcT = ac - ab
+
+In the second case - clipping:
+
+    val p2x = ab.translateX.clip(0, p1x).linlin(0, p1x, 0, ac.translateX)
+    val p2y = ab.translateY.clip(0, p1y).linlin(0, p1y, 0, ac.translateY)
+    val p3x = ac.translateX - p2x
+    val p3y = ac.translateY - p2y
+    val abT = ab.copy(translateX = p2x, translateY = p2y)   // T(-1.409,0.227)
+    val bcT = bc.copy(translateX = p3x, translateY = p3y)   // T( 0.0  ,0.256)
+        
+In the third case - leaving ab:
+
+    val bcT = bc.copy(translateX = ac.translateX - ab.translateX,   // T(-1.457,0.281)
+                      translateY = ac.translateY - ab.translateY)
+    
