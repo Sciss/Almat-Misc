@@ -255,7 +255,7 @@ object PhaseCorrelation extends ProcessorFactory {
     val xMax    = (xMin + trDiam).wrap(0, wm)
     val yMax    = (yMin + trDiam).wrap(0, hm)
 
-    println(f"peak run 1 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
+    // println(f"peak run 1 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
 
     val threshM2 = thresh2 * max
     cx = 0.0
@@ -281,7 +281,7 @@ object PhaseCorrelation extends ProcessorFactory {
     cx /= cs
     cy /= cs
 
-    println(f"peak run 2 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
+    // println(f"peak run 2 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
 
     val peak = Product(translateX = cx, translateY = cy, peak = cs)
     if (downSample == 1.0) peak else
