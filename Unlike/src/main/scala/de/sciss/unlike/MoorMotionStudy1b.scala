@@ -47,7 +47,7 @@ object MoorMotionStudy1b extends App {
   if (mode == "ANALYZE" || mode == "BOTH") {
     val p1 = EstimateVideoMotion(c1)
     println("Analyze adjacent...")
-    runAndMonitor(p1, exit = !TWO_STEP, printResult = false)
+    runAndMonitor(p1, exit = mode != "BOTH" && !TWO_STEP, printResult = false)
 
     val lastProc = if (!TWO_STEP) p1 else {
       Await.result(p1, Duration.Inf)
