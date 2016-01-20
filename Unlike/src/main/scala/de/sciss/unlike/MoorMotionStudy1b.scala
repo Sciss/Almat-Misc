@@ -21,26 +21,27 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
 
 object MoorMotionStudy1b extends App {
-  val mode        = "BOTH"   // either "WRITE" or "ANALYZE" or "BOTH"
+  lazy val mode             = "BOTH"   // either "WRITE" or "ANALYZE" or "BOTH"
 
-  val TWO_STEP    = false    // if `true` use two-step motion estimation optimisation strategy
+  lazy val TWO_STEP         = false    // if `true` use two-step motion estimation optimisation strategy
 
-  val base        = userHome / "Documents" / "projects" / "Unlike"
-  val startFrame  =     1 + 60
-  val endFrame    = 11601 // 11945 - 60
-  val jsonDir     = base / "moor_8024_json"
-  val renderDir   = base / "moor_8024_out"
+  lazy val base             = userHome / "Documents" / "projects" / "Unlike"
+  lazy val startFrame       =     1 + 60
+  lazy val endFrame         = 11601 // 11945 - 60
+  lazy val jsonDir          = base / "moor_8024_json"
+  lazy val renderDir        = base / "moor_8024_out"
+  lazy val outputTemplate   = renderDir / "moor_8024-out-%05d.jpg"
 
   if (!jsonDir  .exists()) jsonDir  .mkdir()
   if (!renderDir.exists()) renderDir.mkdir()
 
-  val c1 = EstimateVideoMotion.Config(
+  lazy val c1 = EstimateVideoMotion.Config(
     input   = base / "moor_8024" / "moor_8024-%05d.jpg",
     output  = Some(jsonDir / "moor_8024-%05d-%05d.json"),
     frames  = startFrame to endFrame
   )
-  val c2 = c1.copy(frames = startFrame     to endFrame by 2)
-  val c3 = c1.copy(frames = startFrame + 1 to endFrame by 2)
+  lazy val c2 = c1.copy(frames = startFrame     to endFrame by 2)
+  lazy val c3 = c1.copy(frames = startFrame + 1 to endFrame by 2)
 
   require (mode == "ANALYZE" || mode == "WRITE" || mode == "BOTH")
 
@@ -90,13 +91,12 @@ object MoorMotionStudy1b extends App {
     val frames  = Await.result(framesFut, Duration.Inf)
 
     val input   = c1.input
-    val output  = renderDir / "moor_8024-out-%05d.jpg"
 
     val fltGamma  = new GammaFilter(0.5f)
     val fltNoise  = new NoiseFilter
     fltNoise.setAmount(10)
 
-    val renCfg  = RenderVideoMotion.Config(input = input, output = output, format = ImageFormat.JPG(),
+    val renCfg  = RenderVideoMotion.Config(input = input, output = outputTemplate, format = ImageFormat.JPG(),
       frames = frames, filters = fltGamma :: fltNoise :: Nil /* , missing = RenderVideoMotion.Missing.Truncate */)
     val p = RenderVideoMotion(renCfg)
     println("Render...")
