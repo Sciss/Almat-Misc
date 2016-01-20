@@ -29,7 +29,7 @@ object PhaseCorrelation extends ProcessorFactory {
 
   case class Config(pathA: File, pathB: File, settings: Settings = Settings())
 
-  case class Settings(downSample: Double = 1.0,
+  case class Settings(downSample: Double = 1.0, thresh: Double = 0.33,
     rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
 
@@ -93,13 +93,9 @@ object PhaseCorrelation extends ProcessorFactory {
     * @param fft    as returned by `prepareFFT`
     */
   def process(imgTA: Image, imgTB: Image, fft: DoubleFFT_2D, settings: Settings): Product = {
-    import settings.downSample
     val imgC = preparePeak(imgTA = imgTA, imgTB = imgTB, fft = fft)
-
-    val peak = findPeakCentroid(imgC)
-    if (downSample == 1.0) peak else
-      peak.copy(translateX = peak.translateX * downSample, translateY = peak.translateY * downSample,
-        rotate = 0.0, scale = 1.0)
+    val peak = findPeakCentroid(imgC, settings)
+    peak
   }
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
@@ -180,7 +176,9 @@ object PhaseCorrelation extends ProcessorFactory {
     IntPoint2D(x, y)
   }
 
-  def findPeakCentroid(image: Image): Product = {
+  def findPeakCentroid(image: Image, settings: Settings): Product = {
+    import settings.{downSample, thresh}
+
     val data  = image.data
     val w     = image.width
     val h     = image.height
@@ -194,7 +192,8 @@ object PhaseCorrelation extends ProcessorFactory {
       }
       i += 1
     }
-    val thresh = 0.25 * max
+    println(f"max = $max%1.3f")
+    val threshM = thresh /* 0.25 */ * max
 
     var cx = 0.0
     var cy = 0.0
@@ -206,8 +205,10 @@ object PhaseCorrelation extends ProcessorFactory {
     while (y < h) {
       var x = 0
       while (x < w) {
-        val q = image.pixel(x, y)
-        if (q > thresh) {
+//        val q = image.pixel(x, y)
+//        if (q > threshM) {
+        val q = image.pixel(x, y) - threshM
+        if (q > 0.0) {
           cx += q * (if (x >= wh) x - w else x)
           cy += q * (if (y >= hh) y - h else y)
           cs += q
@@ -220,7 +221,10 @@ object PhaseCorrelation extends ProcessorFactory {
     cx /= cs
     cy /= cs
 
-    Product(translateX = cx, translateY = cy, peak = cs)
+    val peak = Product(translateX = cx, translateY = cy, peak = cs)
+    if (downSample == 1.0) peak else
+      peak.copy(translateX = peak.translateX * downSample, translateY = peak.translateY * downSample,
+        rotate = 0.0, scale = 1.0)
   }
 
   def findPeakCentroidOLD(image: Image): Product = {

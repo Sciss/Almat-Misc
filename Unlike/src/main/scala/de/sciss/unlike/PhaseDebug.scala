@@ -19,7 +19,10 @@ object PhaseDebug {
   val fBaseIn   = fBase / "moor_8024"
   val fBaseJson = fBase / "moor_8024_json"
 
-  val indices = (4414 + 60) to (4418 + 60)
+  // val indices = (4414 + 60) to (4418 + 60)
+  // val indices = (2408 + 60) to (2412 + 60)
+  // val indices = (5114 + 60) to (5124 + 60)
+  val indices = (7770 + 60) to (7790 + 60)
 
   def main(args: Array[String]): Unit = Swing.onEDT(run())
 
@@ -36,7 +39,7 @@ object PhaseDebug {
 
     val transforms0 = Frame.identity +: EstimateVideoMotion.read(EstimateVideoMotion.Config(
       input = fBaseIn /* unused */, output = Some(fBaseJson / "moor_8024-%05d-%05d.json"), frames = indices))
-    val transforms = RenderVideoMotion.integrate(transforms0)
+    var transforms = RenderVideoMotion.integrate(transforms0)
 
     val avCfg           = AutoView.Config()
     avCfg.small         = true
@@ -51,11 +54,23 @@ object PhaseDebug {
         comp.repaint()
     }
 
+    frameView.cell.addListener {
+      case t =>
+        val index0  = selectView.cell().frame
+        val index   = index0 - indices.head
+        transforms  = transforms.updated(index, t)
+        comp.repaint()
+    }
+
     lazy val ggCalc: Button = Button("Calc") {
       import PhaseCorrelation._
+      val select0 = selectView.cell()
+      // val frame0  = frameView .cell()
+      val predIdx = select0.frame - indices.head - 1
+
       val fut = Future(blocking {
-        val settings  = Settings()
-        val frame     = selectView.cell().frame
+        val settings  = Settings(downSample = 1.0, thresh = 0.5)
+        val frame     = select0.frame
         // val index     = frame - indices.head
         val imgA      = prepareImage(mkFIn(frame - 1), settings)
         val imgB      = prepareImage(mkFIn(frame    ), settings)
@@ -67,16 +82,20 @@ object PhaseDebug {
         val max       = matrix.data.max
         val buf       = matrix.toAwt(mul = 1.0 / (max - min), add = -min)
         ImageIO.write(buf, "png", userHome / "Documents" / "temp" / "_killme.png")
-        val peak1     = findPeakCentroidOLD(matrix)
-        val peak2     = findPeakCentroid   (matrix)
-        println(peak1)
+        // val peak1     = findPeakCentroidOLD(matrix)
+        val peak2     = findPeakCentroid(matrix, settings)
+        // println(peak1)
         println(peak2)
+        peak2
       })
-//      fut.foreach { _ =>
-//        println("Done.")
-////        onEDT {
-////        }
-//      }
+      fut.foreach { matrix =>
+        // println("Done.")
+        onEDT {
+          val tSucc = RenderVideoMotion.integrate(Vector(transforms(predIdx), matrix)).last
+          transforms = transforms.updated(predIdx + 1, tSucc)
+          frameView.cell() = tSucc
+        }
+      }
     }
 
     lazy val comp: Component = new Component {
