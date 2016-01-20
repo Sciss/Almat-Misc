@@ -31,6 +31,9 @@ object MoorMotionStudy1b extends App {
   val jsonDir     = base / "moor_8024_json"
   val renderDir   = base / "moor_8024_out"
 
+  if (!jsonDir  .exists()) jsonDir  .mkdir()
+  if (!renderDir.exists()) renderDir.mkdir()
+
   val c1 = EstimateVideoMotion.Config(
     input   = base / "moor_8024" / "moor_8024-%05d.jpg",
     output  = Some(jsonDir / "moor_8024-%05d-%05d.json"),
