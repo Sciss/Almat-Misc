@@ -67,12 +67,16 @@ object PhaseDebug {
         val max       = matrix.data.max
         val buf       = matrix.toAwt(mul = 1.0 / (max - min), add = -min)
         ImageIO.write(buf, "png", userHome / "Documents" / "temp" / "_killme.png")
+        val peak1     = findPeakCentroidOLD(matrix)
+        val peak2     = findPeakCentroid   (matrix)
+        println(peak1)
+        println(peak2)
       })
-      fut.foreach { _ =>
-        println("Done.")
-//        onEDT {
-//        }
-      }
+//      fut.foreach { _ =>
+//        println("Done.")
+////        onEDT {
+////        }
+//      }
     }
 
     lazy val comp: Component = new Component {

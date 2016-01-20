@@ -15,11 +15,14 @@ package de.sciss.unlike
 
 import com.jhlabs.image.{NoiseFilter, GammaFilter}
 import de.sciss.file._
+import de.sciss.unlike.PhaseCorrelation.{Product => Frame}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
 
 object MoorMotionStudy1b extends App {
+  val TWO_STEP    = false
+
   val base        = userHome / "Documents" / "projects" / "Unlike"
   val mode        = "WRITE"
   val startFrame  =     1 + 60
@@ -38,21 +41,24 @@ object MoorMotionStudy1b extends App {
   if (mode == "ANALYZE") {
     val p1 = EstimateVideoMotion(c1)
     println("Analyze adjacent...")
-    runAndMonitor(p1, exit = false, printResult = false)
-    Await.result(p1, Duration.Inf)
+    runAndMonitor(p1, exit = !TWO_STEP, printResult = false)
 
-    val p2 = EstimateVideoMotion(c2)
-    println("Analyze two-step even...")
-    runAndMonitor(p2, exit = false, printResult = false)
-    Await.result(p2, Duration.Inf)
+    if (TWO_STEP) {
+      Await.result(p1, Duration.Inf)
 
-    val p3 = EstimateVideoMotion(c3)
-    println("Analyze two-step odd...")
-    runAndMonitor(p3, exit = true, printResult = false)
+      val p2 = EstimateVideoMotion(c2)
+      println("Analyze two-step even...")
+      runAndMonitor(p2, exit = false, printResult = false)
+      Await.result(p2, Duration.Inf)
+
+      val p3 = EstimateVideoMotion(c3)
+      println("Analyze two-step odd...")
+      runAndMonitor(p3, exit = true, printResult = false)
+    }
 
   } else if (mode == "WRITE") {
 
-    val framesFut = Future(blocking {
+    val framesFut = Future[Vec[(Int, Frame)]](blocking {
       import PhaseCorrelation.{Product => Frame}
       def read(c: EstimateVideoMotion.Config): Map[(Int, Int), Frame] = {
         val seq = EstimateVideoMotion.read(c)
@@ -61,9 +67,15 @@ object MoorMotionStudy1b extends App {
         } .toMap // (breakOut)
       }
 
-      val map = read(c1) ++ read(c2) ++ read(c3)
-      RenderVideoMotion.twoStepOptimization(c1.frames, map, weight = _ max _)
+      if (TWO_STEP) {
+        val map = read(c1) ++ read(c2) ++ read(c3)
+        RenderVideoMotion.twoStepOptimization(c1.frames, map, weight = _ max _)
+      } else {
+        val seq = EstimateVideoMotion.read(c1)
+        c1.frames zip (Frame.identity +: seq)
+      }
     })
+
     println("Read JSON...")
     val frames  = Await.result(framesFut, Duration.Inf)
 

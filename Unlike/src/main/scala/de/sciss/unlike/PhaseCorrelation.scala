@@ -181,6 +181,49 @@ object PhaseCorrelation extends ProcessorFactory {
   }
 
   def findPeakCentroid(image: Image): Product = {
+    val data  = image.data
+    val w     = image.width
+    val h     = image.height
+    val n     = w * h // NOT: data.length - as we re-use a larger array
+    var i     = 0
+    var max   = Double.NegativeInfinity
+    while (i < n) {
+      val q = data(i)
+      if (q > max) {
+        max = q
+      }
+      i += 1
+    }
+    val thresh = 0.25 * max
+
+    var cx = 0.0
+    var cy = 0.0
+    var cs = 0.0
+
+    val wh  = w/2
+    val hh  = h/2
+    var y = 0
+    while (y < h) {
+      var x = 0
+      while (x < w) {
+        val q = image.pixel(x, y)
+        if (q > thresh) {
+          cx += q * (if (x >= wh) x - w else x)
+          cy += q * (if (y >= hh) y - h else y)
+          cs += q
+        }
+       x += 1
+      }
+      y += 1
+    }
+
+    cx /= cs
+    cy /= cs
+
+    Product(translateX = cx, translateY = cy, peak = cs)
+  }
+
+  def findPeakCentroidOLD(image: Image): Product = {
     val data = image.data
     val w = image.width
     val h = image.height
