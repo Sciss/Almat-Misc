@@ -16,6 +16,7 @@ package de.sciss.unlike
 import java.util
 
 import de.sciss.file._
+import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
@@ -29,7 +30,28 @@ object PhaseCorrelation extends ProcessorFactory {
 
   case class Config(pathA: File, pathB: File, settings: Settings = Settings())
 
-  case class Settings(downSample: Double = 1.0, thresh: Double = 0.33,
+  /** @param downSample   A factor >= 1 for reducing the image size in place. This makes
+    *                     the calculation faster at the cost of precision
+    * @param thresh1      Peak search first run (coarse) threshold. The first run
+    *                     determines a preliminary peak location around which the second
+    *                     run will be executed.
+    * @param transRadius  The radius in pixels around the preliminary peak location resulting
+    *                     from the first run. Note: this will not be scaled by `downSample`
+    *                     but applied to the down-sampled image as provided.
+    * @param thresh2      Peak search second run fine) threshold. The second run
+    *                     happens around the zone found in the first run. This should probably
+    *                     be lower than `thresh1`. The peak in the second run is a weighted
+    *                     sum of the pixels exceeding this threshold.
+    * @param rotateMin    Rotation determination minimum in degrees. CURRENTLY NOT USED.
+    * @param rotateMax    Rotation determination maximum in degrees. CURRENTLY NOT USED.
+    * @param rotateSteps  Rotation determination number of interpolation steps. CURRENTLY NOT USED.
+    * @param scaleMin     Scaling determination minimum factor. CURRENTLY NOT USED.
+    * @param scaleMax     Scaling determination maximum factor. CURRENTLY NOT USED.
+    * @param scaleSteps   Scaling determination number of interpolation steps. CURRENTLY NOT USED.
+    */
+  case class Settings(downSample: Double = 1.0,
+                      thresh1: Double = 0.5, transRadius: Int = 100,
+                      thresh2: Double = 0.33,
     rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
 
@@ -177,7 +199,7 @@ object PhaseCorrelation extends ProcessorFactory {
   }
 
   def findPeakCentroid(image: Image, settings: Settings): Product = {
-    import settings.{downSample, thresh}
+    import settings.{downSample, thresh1, thresh2, transRadius}
 
     val data  = image.data
     val w     = image.width
@@ -192,9 +214,11 @@ object PhaseCorrelation extends ProcessorFactory {
       }
       i += 1
     }
-    println(f"max = $max%1.3f")
-    val threshM = thresh /* 0.25 */ * max
+    // println(f"max = $max%1.3f")
 
+    // ---- first run ----
+
+    val threshM1 = thresh1 * max
     var cx = 0.0
     var cy = 0.0
     var cs = 0.0
@@ -207,7 +231,7 @@ object PhaseCorrelation extends ProcessorFactory {
       while (x < w) {
 //        val q = image.pixel(x, y)
 //        if (q > threshM) {
-        val q = image.pixel(x, y) - threshM
+        val q = image.pixel(x, y) - threshM1
         if (q > 0.0) {
           cx += q * (if (x >= wh) x - w else x)
           cy += q * (if (y >= hh) y - h else y)
@@ -220,6 +244,44 @@ object PhaseCorrelation extends ProcessorFactory {
 
     cx /= cs
     cy /= cs
+
+    // ---- second run ----
+    import numbers.Implicits._
+    val wm      = w - 1
+    val hm      = h - 1
+    val xMin    = ((cx + 0.5).toInt - transRadius).wrap(0, wm)
+    val yMin    = ((cy + 0.5).toInt - transRadius).wrap(0, hm)
+    val trDiam  = transRadius + transRadius + 1
+    val xMax    = (xMin + trDiam).wrap(0, wm)
+    val yMax    = (yMin + trDiam).wrap(0, hm)
+
+    println(f"peak run 1 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
+
+    val threshM2 = thresh2 * max
+    cx = 0.0
+    cy = 0.0
+    cs = 0.0
+    y  = yMin
+    while (y != yMax) {
+      var x = xMin
+      while (x != xMax) {
+        val q = image.pixel(x, y)
+        if (q > threshM2) {
+        // val q = image.pixel(x, y) - threshM2
+        // if (q > 0.0) {
+          cx += q * (if (x >= wh) x - w else x)
+          cy += q * (if (y >= hh) y - h else y)
+          cs += q
+        }
+        x = (x + 1) % w
+      }
+      y = (y + 1) % h
+    }
+
+    cx /= cs
+    cy /= cs
+
+    println(f"peak run 2 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
 
     val peak = Product(translateX = cx, translateY = cy, peak = cs)
     if (downSample == 1.0) peak else

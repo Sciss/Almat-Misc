@@ -21,10 +21,11 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
 
 object MoorMotionStudy1b extends App {
-  val TWO_STEP    = false
+  val mode        = "BOTH"   // either "WRITE" or "ANALYZE" or "BOTH"
+
+  val TWO_STEP    = false    // if `true` use two-step motion estimation optimisation strategy
 
   val base        = userHome / "Documents" / "projects" / "Unlike"
-  val mode        = "WRITE"
   val startFrame  =     1 + 60
   val endFrame    = 11601 // 11945 - 60
   val jsonDir     = base / "moor_8024_json"
@@ -38,12 +39,14 @@ object MoorMotionStudy1b extends App {
   val c2 = c1.copy(frames = startFrame     to endFrame by 2)
   val c3 = c1.copy(frames = startFrame + 1 to endFrame by 2)
 
-  if (mode == "ANALYZE") {
+  require (mode == "ANALYZE" || mode == "WRITE" || mode == "BOTH")
+
+  if (mode == "ANALYZE" || mode == "BOTH") {
     val p1 = EstimateVideoMotion(c1)
     println("Analyze adjacent...")
     runAndMonitor(p1, exit = !TWO_STEP, printResult = false)
 
-    if (TWO_STEP) {
+    val lastProc = if (!TWO_STEP) p1 else {
       Await.result(p1, Duration.Inf)
 
       val p2 = EstimateVideoMotion(c2)
@@ -54,9 +57,13 @@ object MoorMotionStudy1b extends App {
       val p3 = EstimateVideoMotion(c3)
       println("Analyze two-step odd...")
       runAndMonitor(p3, exit = true, printResult = false)
+      p3
     }
 
-  } else if (mode == "WRITE") {
+    if (mode == "BOTH") Await.result(lastProc, Duration.Inf)
+
+  }
+  if (mode == "WRITE" || mode == "BOTH") {
 
     val framesFut = Future[Vec[(Int, Frame)]](blocking {
       import PhaseCorrelation.{Product => Frame}
@@ -94,8 +101,5 @@ object MoorMotionStudy1b extends App {
       case e => e.printStackTrace()
     }
     runAndMonitor(p, exit = true, printResult = false)
-
-  } else {
-    throw new UnsupportedOperationException(mode)
   }
 }

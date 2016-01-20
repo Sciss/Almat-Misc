@@ -19,10 +19,11 @@ object PhaseDebug {
   val fBaseIn   = fBase / "moor_8024"
   val fBaseJson = fBase / "moor_8024_json"
 
+  val indices = (1 + 60) to (10 + 60)
   // val indices = (4414 + 60) to (4418 + 60)
   // val indices = (2408 + 60) to (2412 + 60)
   // val indices = (5114 + 60) to (5124 + 60)
-  val indices = (7770 + 60) to (7790 + 60)
+  // val indices = (7770 + 60) to (7790 + 60)
 
   def main(args: Array[String]): Unit = Swing.onEDT(run())
 
@@ -69,7 +70,7 @@ object PhaseDebug {
       val predIdx = select0.frame - indices.head - 1
 
       val fut = Future(blocking {
-        val settings  = Settings(downSample = 1.0, thresh = 0.5)
+        val settings  = Settings(downSample = 1.0, thresh1 = 0.5, thresh2 = 0.33)
         val frame     = select0.frame
         // val index     = frame - indices.head
         val imgA      = prepareImage(mkFIn(frame - 1), settings)
