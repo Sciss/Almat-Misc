@@ -134,19 +134,19 @@ object Morass extends ProcessorFactory {
               // checkNaNs(fftBufA, "elemMul")
               elemNorm(fftBufA)
               // checkNaNs(fftBufA, "elemNorm")
-              fft.realInverse(fftBufA, false)
+              fft.realInverse(fftBufA, true)
               // checkNaNs(fftBufA, "FFT inverse")
 
               val img     = new Image(fftBufA, width = winSize, height = 1)
-              val peak    = findPeakCentroid(img, settings).translateX
-              val shiftX  = (peak + 0.5).toInt + winSizeH
+              val prod    = findPeakCentroid(img, settings)
+              val shiftX  = (prod.translateX + 0.5).toInt + winSizeH
               // println(f"peak = $peak%1.2f")
 
               // handle overlap out
               System.arraycopy(chOut, stepSize, chOut, 0, bufOutSzM)
 
               import numbers.Implicits._
-              val amp = ampModulation.linlin(0, 1, 1.0, peak)
+              val amp = ampModulation.linlin(0, 1, 1.0, prod.peak)
               i = 0
               while (i < winSynth.length) {
                 chOut(i + shiftX) += (chInA(i) * amp * winSynth(i)).toFloat
