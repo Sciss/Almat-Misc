@@ -21,7 +21,7 @@ object WindowFunction {
   def apply(id: Int, param: Double = 0.0): WindowFunction = (id: @switch) match {
     case 0 => Hamming
     case 1 => Blackman
-    case 2 => Kaiser( param )
+    case 2 => Kaiser(param)
     case 3 => Rectangle
     case 4 => Hanning
     case 5 => Triangle
@@ -33,6 +33,7 @@ object WindowFunction {
   )
 
   sealed trait Parameterless extends WindowFunction {
+    _: Product =>
     final def param: Double = 0.0
   }
 
@@ -148,9 +149,13 @@ object WindowFunction {
 }
 
 sealed trait WindowFunction {
+  _: Product =>
+
   def id: Int
 
   def param: Double
+
+  def name: String = productPrefix.toLowerCase
 
   final def create(len: Int): Array[Double] = fill(null, 0, len)
 

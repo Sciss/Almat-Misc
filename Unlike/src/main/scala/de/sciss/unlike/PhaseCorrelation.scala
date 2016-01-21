@@ -86,7 +86,7 @@ object PhaseCorrelation extends ProcessorFactory {
     */
   def prepareData(image: Image, fft: DoubleFFT_2D): Image = {
     val data = realToComplex(image.data)
-    blocking(fft.complexForward(data))
+    blocking(fft.complexForward(data))  // XXX TODO -- should be real
     new Image(data, width = image.width << 1, height = image.height)
   }
 
@@ -100,7 +100,7 @@ object PhaseCorrelation extends ProcessorFactory {
     elemMul(dataTmp, imgTA.data)
     elemNorm(dataTmp)
 
-    blocking(fft.complexInverse(dataTmp, true))
+    blocking(fft.complexInverse(dataTmp, true))   // XXX TODO -- should be real
 
     complexToRealInPlace(dataTmp)
     val w = imgTA.width >> 1
@@ -262,9 +262,9 @@ object PhaseCorrelation extends ProcessorFactory {
     cy = 0.0
     cs = 0.0
     y  = yMin
-    while (y != yMax) {
+    do {
       var x = xMin
-      while (x != xMax) {
+      do {
         val q = image.pixel(x, y)
         if (q > threshM2) {
         // val q = image.pixel(x, y) - threshM2
@@ -274,12 +274,14 @@ object PhaseCorrelation extends ProcessorFactory {
           cs += q
         }
         x = (x + 1) % w
-      }
+      } while (x != xMax)
       y = (y + 1) % h
-    }
+    } while (y != yMax)
 
-    cx /= cs
-    cy /= cs
+    if (cs > 0) {
+      cx /= cs
+      cy /= cs
+    }
 
     // println(f"peak run 2 - ($cx%1.2f, $cy%1.2f, $cs%1.2f)")
 
