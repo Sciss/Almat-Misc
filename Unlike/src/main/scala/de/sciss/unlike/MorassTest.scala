@@ -67,6 +67,11 @@ object MorassTest {
         .action   { (v, c) => c.copy(synthesizeWinType = findWindow(v).get) }
         .validate(validateWindow)
 
+      opt[Double] ('z', "synthesis-window-amount")
+        .text ("Proportional length of synthesis-window function (1.0 = full, 0.0 = rectangle, default: 1.0")
+        .action   { (v, c) => c.copy(synthesizeWinAmt = v) }
+        .validate { v => if (v >= 0 & v <= 1) success else failure("Synthesis-window-amount must be >= 0 and <= 1") }
+
       opt[Double] ('m', "amplitude")
         .text ("Amount of amplitude modulation (0.0 to 1.0, default: 0.0)")
         .action   { (v, c) => c.copy(ampModulation = v) }
@@ -77,7 +82,7 @@ object MorassTest {
         .validate {  v     => if (v >= 1) success else failure("step size must be > 0") }
 
       opt[Double] ('r', "radius")
-        .text ("Maximum phase shift (0.0 to 1.0) (default: 1.0)")
+        .text ("Maximum phase shift (0.0 to 1.0, default: 1.0)")
         .action   { (v, c) => c.copy(radius = v) }
         .validate {  v     => if (v >= 0.0 && v <= 1.0) success else failure("radius must be >= 0 and <= 1") }
     }

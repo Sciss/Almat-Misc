@@ -30,6 +30,7 @@ object Morass extends ProcessorFactory {
                     templateWinSize   : Int = 16384,
                     analyzeWinType    : WindowFunction = WindowFunction.Hanning,
                     synthesizeWinType : WindowFunction = WindowFunction.Hanning,
+                    synthesizeWinAmt  : Double  = 1.0,
                     ampModulation     : Double  = 0.0,
                     stepSize          : Int     = 16,
                     radius            : Double  = 1.0
@@ -38,6 +39,7 @@ object Morass extends ProcessorFactory {
     require(templateWinSize >= 2)
     require(stepSize > 0 && stepSize <= inputWinSize && stepSize <= templateWinSize )
     require(radius   >= 0 && radius <= 1.0)
+    require(synthesizeWinAmt >= 0 && synthesizeWinAmt <= 1.0)
   }
 
   type Product  = Unit
@@ -46,6 +48,8 @@ object Morass extends ProcessorFactory {
   protected def prepare(config: Config): Prepared = new Impl(config)
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
+    override def toString = s"Morass@${hashCode.toHexString}"
+
     protected def body(): Unit = {
       var resources = List.empty[() => Unit]
       import config._
@@ -78,7 +82,17 @@ object Morass extends ProcessorFactory {
         val bufOut        = Array.ofDim[Float](numCh, bufOutSz)
         val winAnaIn      = analyzeWinType    .create(inputWinSize   )
         val winAnaTemp    = analyzeWinType    .create(templateWinSize)
-        val winSynth      = synthesizeWinType .create(inputWinSize   )
+        val winSynth      = if (synthesizeWinAmt == 1.0) {
+          synthesizeWinType.create(inputWinSize)
+        } else {
+          val arr  = new Array[Double](inputWinSize)
+          val len  = (synthesizeWinAmt * inputWinSize + 0.5).toInt
+          val lenH = len >> 1
+          synthesizeWinType.fill(arr, 0, len)
+          System.arraycopy(arr, lenH, arr, inputWinSize - (len - lenH), len - lenH)
+          WindowFunction.Rectangle.fill(arr, lenH, inputWinSize - len)
+          arr
+        }
         val fft           = new DoubleFFT_1D(winSize)
         val fftBufA       = new Array[Double](winSize)
         val fftBufB       = new Array[Double](winSize)
