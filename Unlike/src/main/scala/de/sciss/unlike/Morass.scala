@@ -33,7 +33,8 @@ object Morass extends ProcessorFactory {
                     synthesizeWinAmt  : Double  = 1.0,
                     ampModulation     : Double  = 0.0,
                     stepSize          : Int     = 16,
-                    radius            : Double  = 1.0
+                    radius            : Double  = 1.0,
+                    keepFileLength    : Boolean = true
    ) {
     require(inputWinSize    >= 2)
     require(templateWinSize >= 2)
@@ -65,7 +66,7 @@ object Morass extends ProcessorFactory {
         resources       ::= { () => afInB.close() }
         val numCh         = max(afInA.numChannels, afInB.numChannels)
         val numFrames     = min(afInA.numFrames  , afInB.numFrames  )
-        val numFramesOut  = numFrames + winSize
+        val numFramesOut  = if (keepFileLength) numFrames else numFrames + winSize
         val specOut       = AudioFileSpec(fileType = outputFileType, sampleFormat = outputSampleFormat,
                                           numChannels = numCh, sampleRate = afInA.sampleRate)
         val afOut         = blocking(AudioFile.openWrite(output, specOut))
@@ -153,7 +154,8 @@ object Morass extends ProcessorFactory {
 
               val img     = new Image(fftBufA, width = winSize, height = 1)
               val prod    = findPeakCentroid(img, settings)
-              val shiftX  = (prod.translateX + 0.5).toInt + winSizeH
+              val transX  = (prod.translateX + 0.5).toInt
+              val shiftX  = if (keepFileLength) transX else transX + winSizeH
               // println(f"peak = $peak%1.2f")
 
               // handle overlap out
@@ -161,7 +163,7 @@ object Morass extends ProcessorFactory {
 
               import numbers.Implicits._
               val amp = ampModulation.linlin(0, 1, 1.0, prod.peak)
-              i = 0
+              i = if (shiftX < 0) -shiftX else 0
               while (i < winSynth.length) {
                 chOut(i + shiftX) += (chInA(i) * amp * winSynth(i)).toFloat
                 i += 1
