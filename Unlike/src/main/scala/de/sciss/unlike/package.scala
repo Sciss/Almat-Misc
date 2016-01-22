@@ -30,7 +30,7 @@ package object unlike {
   type Vec[+A]  = scala.collection.immutable.IndexedSeq[A]
   val  Vec      = scala.collection.immutable.IndexedSeq
 
-  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
+  def mkBlockTread(): AnyRef = {
     val sync = new AnyRef
     val t = new Thread {
       override def run(): Unit = {
@@ -39,7 +39,11 @@ package object unlike {
       }
     }
     t.start()
+    sync
+  }
 
+  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
+    val sync = mkBlockTread()
     p.onComplete {
       case _ => sync.synchronized(sync.notify())
     }

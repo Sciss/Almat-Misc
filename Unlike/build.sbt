@@ -23,7 +23,8 @@ lazy val commonSettings = Seq(
     "de.sciss"          %  "weblaf"             % "1.28",
     "com.github.scopt"  %% "scopt"              % "3.3.0",
     "de.sciss"          %% "scissdsp"           % "1.2.2",
-    "de.sciss"          %% "scalaaudiofile"     % "1.4.5"
+    "de.sciss"          %% "scalaaudiofile"     % "1.4.5",
+    "de.sciss"          %% "fscapejobs"         % "1.5.0"
   )
 )
 
