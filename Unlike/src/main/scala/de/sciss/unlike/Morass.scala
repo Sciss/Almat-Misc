@@ -23,23 +23,25 @@ import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D
 import scala.concurrent.blocking
 
 object Morass extends ProcessorFactory {
-  case class Config(input: File = file("input"), template: File = file("template"), output: File = file("output"),
-                    outputFileType    : AudioFileType = AudioFileType.AIFF,
-                    outputSampleFormat: SampleFormat  = SampleFormat.Float,
-                    inputWinSize      : Int = 16384,
-                    templateWinSize   : Int = 16384,
-                    analyzeWinType    : WindowFunction = WindowFunction.Hanning,
-                    synthesizeWinType : WindowFunction = WindowFunction.Hanning,
-                    synthesizeWinAmt  : Double  = 1.0,
-                    ampModulation     : Double  = 0.0,
-                    stepSize          : Int     = 16,
-                    radius            : Double  = 1.0,
-                    keepFileLength    : Boolean = true
+  case class Config(input             : File            = file("input"   ),
+                    template          : File            = file("template"),
+                    output            : File            = file("output"  ),
+                    outputFileType    : AudioFileType   = AudioFileType.AIFF,
+                    outputSampleFormat: SampleFormat    = SampleFormat.Float,
+                    inputWinSize      : Int             = 16384,
+                    templateWinSize   : Int             = 16384,
+                    analyzeWinType    : WindowFunction  = WindowFunction.Hanning,
+                    synthesizeWinType : WindowFunction  = WindowFunction.Hanning,
+                    synthesizeWinAmt  : Double          = 1.0,
+                    ampModulation     : Double          = 0.0,
+                    stepSize          : Int             = 16,
+                    radius            : Double          = 1.0,
+                    keepFileLength    : Boolean         = true
    ) {
-    require(inputWinSize    >= 2)
-    require(templateWinSize >= 2)
-    require(stepSize > 0 && stepSize <= inputWinSize && stepSize <= templateWinSize )
-    require(radius   >= 0 && radius <= 1.0)
+    require(inputWinSize     >= 2)
+    require(templateWinSize  >= 2)
+    require(stepSize         >  0 && stepSize <= inputWinSize && stepSize <= templateWinSize )
+    require(radius           >= 0 && radius <= 1.0)
     require(synthesizeWinAmt >= 0 && synthesizeWinAmt <= 1.0)
   }
 

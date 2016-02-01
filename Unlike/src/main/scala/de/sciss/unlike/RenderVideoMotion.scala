@@ -40,6 +40,7 @@ object RenderVideoMotion extends ProcessorFactory {
                     accumulate: Boolean = true,
                     moveToLast: Boolean = true, missing: Missing = Missing.Fill(),
                     filters: Seq[BufferedImageOp] = Nil,
+                    downSample: Double = 1.0,
                     verbose: Boolean = false) {
   }
 
@@ -176,13 +177,15 @@ object RenderVideoMotion extends ProcessorFactory {
       if (verbose)
         println(f"mean ($meanTx%1.2f, $meanTy%1.2f), min ($minTx%1.2f, $minTy%1.2f), max ($maxTx%1.2f, $maxTy%1.2f)")
 
+      import Missing.{Truncate, Fill}
+
       val (dx, dy, dw, dh, bg) = missing match {
-        case Missing.Truncate =>
+        case Truncate =>
           import math.floor
-          (-maxTx, -maxTy, floor(-maxTx + minTx).toInt, floor(-maxTy + minTy).toInt, Color.black)
+          (-maxTx, -maxTy, floor(-maxTx + minTx).toInt * 2, floor(-maxTy + minTy).toInt * 2, Color.black)
 //           floor(min(-maxTx, minTx)).toInt, floor(min(-maxTy, minTy)).toInt, Color.black
 
-        case Missing.Fill(rgba) =>
+        case Fill(rgba) =>
           (-meanTx, -meanTy, 0, 0, new Color(rgba, true))
       }
 
@@ -197,8 +200,8 @@ object RenderVideoMotion extends ProcessorFactory {
             val imageIn   = ImageIO.read(fIn)
             val imgWIn    = imageIn.getWidth
             val imgHIn    = imageIn.getHeight
-            val imgWOut   = math.max(1, imgWIn + dw)
-            val imgHOut   = math.max(1, imgHIn + dh)
+            val imgWOut   = math.max(1, ((imgWIn + dw) / downSample + 0.5).toInt)
+            val imgHOut   = math.max(1, ((imgHIn + dh) / downSample + 0.5).toInt)
             val imageOut  = {
               // Note: JPG export fails with `TYPE_INT_ARGB`!
               val res = new BufferedImage(imgWOut, imgHOut, BufferedImage.TYPE_INT_RGB)
@@ -209,6 +212,9 @@ object RenderVideoMotion extends ProcessorFactory {
               g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
               g.setRenderingHint(RenderingHints.KEY_RENDERING    , RenderingHints.VALUE_RENDER_QUALITY       )
               val at = AffineTransform.getTranslateInstance(translateX + dx, translateY + dy)
+              if (downSample != 1.0) {
+                g.scale(1.0 / downSample, 1.0 / downSample)
+              }
               g.transform(at)
               val imageFlt = (imageIn /: filters)((in, op) => op.filter(in, null))
               g.drawImage(imageFlt, 0, 0, null)
