@@ -14,6 +14,7 @@ object SoundPermutations extends App {
   val outputDir = userHome / "Documents" / "projects" / "Unlike" / "audio_work"
 
   println(s"There are ${inputs.size} input files.")
+  // println(s"There are ${inputs.combinations(2).size} combinations.")
   outputDir.mkdir()
 
   /* val sync = */ mkBlockTread()
@@ -37,10 +38,8 @@ object SoundPermutations extends App {
       }
     }
 
-    fut.onSuccess { case _ => println("All done.") }
-    fut.onComplete { case _ =>
-      sys.exit()
-    }
+    fut.onSuccess  { case _ => println("All done.") }
+    fut.onComplete { case _ => sys.exit()           }
   }
   
   def run(inA: File, inB: File): Unit = {
@@ -85,7 +84,8 @@ object SoundPermutations extends App {
 
       val configRe = Config(input = fftReA, template = fftReB, output = fftOutRe,
         synthesizeWinType = WindowFunction.Rectangle,
-        inputWinSize = 4096, templateWinSize = 32768, stepSize = 16, ampModulation = 0.0675 /* 1.0 */, synthesizeWinAmt = 0.0625 )
+        inputWinSize = 4096, templateWinSize = 32768, stepSize = 16, ampModulation = 0.0675 /* 1.0 */,
+        synthesizeWinAmt = 0.0625 )
       val procRe = Morass(configRe)
       println("_" * 33)
       procRe.monitor(printResult = false)
