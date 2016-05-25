@@ -35,6 +35,23 @@ object RenderVideoMotion extends ProcessorFactory {
   }
   sealed trait Missing
 
+  /** @param input            input template (e.g. with `%d` placeholder for frame number)
+    * @param output           output template (e.g. with `%d` placeholder for frame number)
+    * @param format           image output format
+    * @param frames           pairs of frame number and correlation results
+    * @param resetOutputCount if `true`, begins to write output frames counting from one,
+    *                         if `false` uses the input frame numbers also for output image counting.
+    * @param accumulate       if `true`, assumes correlations were performed pair-wise
+    *                         and those overall motion must be calculated by integrating these results
+    * @param moveToLast       if `true`, superimposes an overall linear motion so that first and last
+    *                         image retain full screen space
+    * @param missing          how to treat the missing image parts after translation
+    *                         (either trim the image or fill background with a color)
+    * @param filters          post processing filters before writing output images
+    * @param downSample       output image scaling factor, where `1.0` is original size,
+    *                         `0.5` is half size, etc.
+    * @param verbose          if `true` print additional debugging information
+    */
   case class Config(input: File, output: File, format: ImageFormat = ImageFormat.PNG,
                     frames: Vec[(Int, Frame)], resetOutputCount: Boolean = true,
                     accumulate: Boolean = true,
