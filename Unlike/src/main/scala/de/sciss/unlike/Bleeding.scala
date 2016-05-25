@@ -87,7 +87,7 @@ object Bleeding extends App {
   // `avconv -r 1 -i unlike_vid/unlike-vid-%04d.jpg unlike.mp4`
   if (mode == "VIDEO") {
     val numIn     = (startFrame to endFrame).size
-    val framesIn  = (1 to numIn) diff skipFrames
+    val framesIn  = (1 to numIn) // diff skipFrames
     framesIn.zipWithIndex.foreach { case (frameIn, frameOut0) =>
       val frameOut  = frameOut0 + 1
       val fIn       = outputTemplate.parent / outputTemplate.name.format(frameIn )
