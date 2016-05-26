@@ -74,7 +74,7 @@ object Unlike extends App {
     //    fltNoise.setAmount(10)
 
     val renCfg  = RenderVideoMotion.Config(input = input, output = outputTemplate, format = ImageFormat.JPG(),
-      frames = frames, filters = /* fltGamma :: fltNoise :: */ Nil, missing = RenderVideoMotion.Missing.Truncate,
+      frames = frames, filtersOut = /* fltGamma :: fltNoise :: */ Nil, missing = RenderVideoMotion.Missing.Truncate,
       downSample = 2.0)
     val p = RenderVideoMotion(renCfg)
     println("Render...")

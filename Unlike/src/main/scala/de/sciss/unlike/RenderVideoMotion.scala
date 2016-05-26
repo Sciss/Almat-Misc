@@ -47,7 +47,8 @@ object RenderVideoMotion extends ProcessorFactory {
     *                         image retain full screen space
     * @param missing          how to treat the missing image parts after translation
     *                         (either trim the image or fill background with a color)
-    * @param filters          post processing filters before writing output images
+    * @param filtersIn        pre processing filters after reading input images
+    * @param filtersOut       post processing filters before writing output images
     * @param downSample       output image scaling factor, where `1.0` is original size,
     *                         `0.5` is half size, etc.
     * @param verbose          if `true` print additional debugging information
@@ -56,7 +57,8 @@ object RenderVideoMotion extends ProcessorFactory {
                     frames: Vec[(Int, Frame)], resetOutputCount: Boolean = true,
                     accumulate: Boolean = true,
                     moveToLast: Boolean = true, missing: Missing = Missing.Fill(),
-                    filters: Seq[BufferedImageOp] = Nil,
+                    filtersIn : Seq[BufferedImageOp] = Nil,
+                    filtersOut: Seq[BufferedImageOp] = Nil,
                     downSample: Double = 1.0,
                     verbose: Boolean = false) {
   }
@@ -214,7 +216,8 @@ object RenderVideoMotion extends ProcessorFactory {
           val fOut = mkOutput(frameOff + outFrOff)
           if (!fOut.exists()) {
             val fIn       = mkInput(frameIn)
-            val imageIn   = ImageIO.read(fIn)
+            val imageIn0  = ImageIO.read(fIn)
+            val imageIn   = (imageIn0 /: filtersIn)((in, op) => op.filter(in, null))
             val imgWIn    = imageIn.getWidth
             val imgHIn    = imageIn.getHeight
             val imgWOut   = math.max(1, ((imgWIn + dw) / downSample + 0.5).toInt)
@@ -233,7 +236,7 @@ object RenderVideoMotion extends ProcessorFactory {
                 g.scale(1.0 / downSample, 1.0 / downSample)
               }
               g.transform(at)
-              val imageFlt = (imageIn /: filters)((in, op) => op.filter(in, null))
+              val imageFlt = (imageIn /: filtersOut)((in, op) => op.filter(in, null))
               g.drawImage(imageFlt, 0, 0, null)
               g.dispose()
               res
