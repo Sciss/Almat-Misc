@@ -21,7 +21,11 @@ import javax.imageio.ImageIO
 import de.sciss.file._
 
 object RCThumbnail {
-  import MoorMotionStudy1b.{base, outputTemplate, startFrame, endFrame}
+  val moorConfig = MoorMotionStudy1b.moorStudyConfig
+
+//  import MoorMotionStudy1b.{base, outputTemplate, startFrame, endFrame}
+  import MoorMotionStudy1b.{moorBase => base} 
+  import moorConfig.{outputTemp => outputTemplate, startFrame, endFrame}
 
   def main(args: Array[String]): Unit = run()
 
