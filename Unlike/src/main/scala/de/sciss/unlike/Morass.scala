@@ -88,6 +88,15 @@ object Morass extends ProcessorFactory {
         val winSynth      = if (synthesizeWinAmt == 1.0) {
           synthesizeWinType.create(inputWinSize)
         } else {
+          // synthesizeWinAmt * inputWinSize is the actual window function.
+          // the left half of the window and the right half of the window
+          // will be split and pushed to the inputWinSize buffer's boundaries,
+          // and the center will be kept at one. Like so:
+          //             ________
+          //    /\  >>  /        \
+          //   /  \    /          \
+          //  /    \  /            \
+          //
           val arr  = new Array[Double](inputWinSize)
           val len  = (synthesizeWinAmt * inputWinSize + 0.5).toInt
           val lenH = len >> 1
@@ -158,7 +167,7 @@ object Morass extends ProcessorFactory {
               val prod    = findPeakCentroid(img, settings)
               val transX  = (prod.translateX + 0.5).toInt
               val shiftX  = if (keepFileLength) transX else transX + winSizeH
-              // println(f"peak = $peak%1.2f")
+              println(f"tx $transX, pk = ${prod.peak}%1.2f")
 
               // handle overlap out
               System.arraycopy(chOut, stepSize, chOut, 0, bufOutSzM)

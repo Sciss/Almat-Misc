@@ -7,7 +7,6 @@ import de.sciss.unlike.Morass.Config
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Await, Promise}
-import scala.util.Random
 
 object SoundPermutations extends App {
   val inputs    = (userHome / "Music" / "work").children(f => f.name.startsWith("mentasm-") && f.ext == "aif")
@@ -32,10 +31,13 @@ object SoundPermutations extends App {
 
   def run(): Unit = {
     val fut = Future {
-      Random.shuffle(inputs.combinations(2)).foreach { case Seq(inA, inB) =>
+      val inA = inputs.find(_.name.contains("b1269fa6")).get
+      // val inB = inputs.find(_.name.contains("65929a65")).get
+      val inB = inputs.find(_.name.contains("b1269fa6")).get
+//      scala.util.Random.shuffle(inputs.combinations(2)).foreach { case Seq(inA, inB) =>
         run(inA, inB)
-        run(inB, inA)
-      }
+//        run(inB, inA)
+//      }
     }
 
     fut.onSuccess  { case _ => println("All done.") }
@@ -84,7 +86,7 @@ object SoundPermutations extends App {
 
       val configRe = Config(input = fftReA, template = fftReB, output = fftOutRe,
         synthesizeWinType = WindowFunction.Rectangle,
-        inputWinSize = 4096, templateWinSize = 32768, stepSize = 16, ampModulation = 0.0675 /* 1.0 */,
+        inputWinSize = 4096, templateWinSize = 4096 /* 32768 */, stepSize = 1024 /* 16 */, ampModulation = 0.0675 /* 1.0 */,
         synthesizeWinAmt = 0.0625 )
       val procRe = Morass(configRe)
       println("_" * 33)
