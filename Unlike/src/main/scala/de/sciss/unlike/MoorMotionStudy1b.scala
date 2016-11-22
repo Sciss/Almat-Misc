@@ -54,7 +54,7 @@ object MoorMotionStudy1b {
         .required()
         .action { (f, c) => c.copy(outputTemp = f) }
 
-      arg[File]("json")
+      opt[File]("json")
         .text ("Directory for json motion files")
         .required()
         .action { (f, c) => c.copy(jsonDir = f) }
@@ -66,7 +66,7 @@ object MoorMotionStudy1b {
       opt[Int] ("end-frame")
         .text ("Last frame in input template (inclusive)")
         .required()
-        .action   { (v, c) => c.copy(startFrame = v) }
+        .action   { (v, c) => c.copy(endFrame = v) }
 
       opt[Unit] ('a', "analyze-only")
         .text ("Only perform analysis step")
