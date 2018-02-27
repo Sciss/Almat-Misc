@@ -2,7 +2,7 @@
  *  MoorMotionStudy1b.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -28,7 +28,9 @@ object MoorMotionStudy1b {
     jsonDir     = moorBase / "moor_8024_json",
     outputTemp  = moorBase / "moor_8024_out" / "moor_8024-out-%05d.jpg",
     startFrame  = 61,
-    endFrame    = 11601
+    endFrame    = 11601,
+    gamma       = 0.5,
+    noise       = 10
   )
 
   object Mode {
@@ -38,11 +40,22 @@ object MoorMotionStudy1b {
   }
   sealed trait Mode
 
-  case class Config(inputTemp: File = file("input-%d.jpg"), outputTemp: File = file("output-%d.jpg"),
-                    jsonDir: File = file("json"),
-                    startFrame: Int = 1, endFrame: Int = 1000, mode: Mode = Mode.Both, twoStep: Boolean = false)
+  case class Config(inputTemp : File    = file("input-%d.jpg"),
+                    outputTemp: File    = file("output-%d.jpg"),
+                    jsonDir   : File    = file("json"),
+                    startFrame: Int     = 1,
+                    endFrame  : Int     = 1000,
+                    mode      : Mode    = Mode.Both,
+                    twoStep   : Boolean = false,
+                    gamma     : Double  = 1.0,
+                    noise     : Int     = 0,
+                    jpgQuality: Int     = 95,
+                    verbose   : Boolean = false
+                   )
 
   def main(args: Array[String]): Unit = {
+    val default = Config()
+
     val p = new scopt.OptionParser[Config]("Moor-Study") {
       opt[File]("input")
         .text ("Input template - use %d as place-holder for frame number")
@@ -60,7 +73,7 @@ object MoorMotionStudy1b {
         .action { (f, c) => c.copy(jsonDir = f) }
 
       opt[Int] ("start-frame")
-        .text ("First frame in input template (inclusive)")
+        .text (s"First frame in input template (inclusive; default: ${default.startFrame})")
         .action   { (v, c) => c.copy(startFrame = v) }
 
       opt[Int] ("end-frame")
@@ -75,8 +88,20 @@ object MoorMotionStudy1b {
       opt[Unit] ('w', "write-only")
         .text ("Only perform write step")
         .action   { (_, c) => c.copy(mode = Mode.Write) }
+
+      opt[Int] ("noise")
+        .text (s"Amount of noise to add (default: ${default.noise})")
+        .action   { (v, c) => c.copy(noise = v) }
+
+      opt[Double] ("gamma")
+        .text (s"Gamma correction (default: ${default.gamma})")
+        .action   { (v, c) => c.copy(gamma = v) }
+
+      opt[Unit] ("verbose")
+        .text ("Print additional information such as min/max translations")
+        .action   { (_, c) => c.copy(verbose = true) }
     }
-    p.parse(args, Config()).fold(sys.exit(1)) { config =>
+    p.parse(args, default).fold(sys.exit(1)) { config =>
       run(config)
     }
   }
@@ -148,12 +173,16 @@ object MoorMotionStudy1b {
 
       val input   = c1.input
 
-      val fltGamma  = new GammaFilter(0.5f)
-      val fltNoise  = new NoiseFilter
-      fltNoise.setAmount(10)
+      val filters0  = if (gamma == 1.0) Nil else new GammaFilter(gamma.toFloat) :: Nil
+      val filters   = if (noise <= 0) filters0 else {
+        val fltNoise = new NoiseFilter
+        fltNoise.setAmount(10)
+        filters0 :+ fltNoise
+      }
 
-      val renCfg  = RenderVideoMotion.Config(input = input, output = outputTemp, format = ImageFormat.JPG(),
-        frames = frames, filtersOut = fltGamma :: fltNoise :: Nil /* , missing = RenderVideoMotion.Missing.Truncate */)
+      val fmt = if (outputTemp.extL == "png") ImageFormat.PNG else ImageFormat.JPG(jpgQuality)
+      val renCfg  = RenderVideoMotion.Config(input = input, output = outputTemp, format = fmt,
+        frames = frames, filtersOut = filters, verbose = verbose /* , missing = RenderVideoMotion.Missing.Truncate */)
       val p = RenderVideoMotion(renCfg)
       println("Render...")
       p.onFailure {

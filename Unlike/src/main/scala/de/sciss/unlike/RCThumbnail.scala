@@ -2,7 +2,7 @@
  *  RCThumbnail.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -21,7 +21,7 @@ import javax.imageio.ImageIO
 import de.sciss.file._
 
 object RCThumbnail {
-  val moorConfig = MoorMotionStudy1b.moorStudyConfig
+  val moorConfig: MoorMotionStudy1b.Config = MoorMotionStudy1b.moorStudyConfig
 
 //  import MoorMotionStudy1b.{base, outputTemplate, startFrame, endFrame}
   import MoorMotionStudy1b.{moorBase => base}
@@ -29,24 +29,24 @@ object RCThumbnail {
 
   def main(args: Array[String]): Unit = run()
 
-  var fOut      = base / "imperfect_thumb.jpg"
-  var frames    = startFrame to endFrame
-  var columns   = 7
-  var rows      = 11
-  var pad       = 2
-  var scale     = 0.15
+  var fOut    : File      = base / "imperfect_thumb.jpg"
+  var frames  : Vec[Int]  = startFrame to endFrame
+  var columns : Int       = 7
+  var rows    : Int       = 11
+  var pad     : Int       = 2
+  var scale   : Double    = 0.15
 
-  def grid      = columns * rows
-  def step      = frames.size.toDouble / grid
-  def selected  = Vector.tabulate(grid)(i => frames((i * step).toInt))
+  def grid    : Int       = columns * rows
+  def step    : Double    = frames.size.toDouble / grid
+  def selected: Vec[Int]  = Vector.tabulate(grid)(i => frames((i * step).toInt))
 
-  val wIn       = 1920
-  val hIn       = 1080
+  val wIn     : Int       = 1920
+  val hIn     : Int       = 1080
 
-  def width0    = (wIn * scale + 0.5).toInt + pad
-  def width     = width0 * columns + pad
-  def height0   = (hIn * scale + 0.5).toInt + pad
-  def height    = height0 * rows  + pad
+  def width0  : Int       = (wIn * scale + 0.5).toInt + pad
+  def width   : Int       = width0 * columns + pad
+  def height0 : Int       = (hIn * scale + 0.5).toInt + pad
+  def height  : Int       = height0 * rows  + pad
 
   def run(): Unit = {
     if (fOut.exists()) {

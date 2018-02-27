@@ -1,3 +1,16 @@
+/*
+ *  PhaseDebug.scala
+ *  (Unlike)
+ *
+ *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *
+ *	This software is published under the GNU General Public License v2+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package de.sciss.unlike
 
 import java.awt.RenderingHints
@@ -15,11 +28,11 @@ import scala.swing.Swing._
 import scala.swing.{Frame => SFrame, Button, BorderPanel, Component, Graphics2D, Swing}
 
 object PhaseDebug {
-  val fBase     = userHome / "Documents" / "projects" / "Unlike"
-  val fBaseIn   = fBase / "moor_8024"
-  val fBaseJson = fBase / "moor_8024_json"
+  val fBase    : File = userHome / "Documents" / "projects" / "Unlike"
+  val fBaseIn  : File = fBase / "moor_8024"
+  val fBaseJson: File = fBase / "moor_8024_json"
 
-  val indices = (1 + 60) to (10 + 60)
+  val indices: Vec[Int] = (1 + 60) to (10 + 60)
   // val indices = (4414 + 60) to (4418 + 60)
   // val indices = (2408 + 60) to (2412 + 60)
   // val indices = (5114 + 60) to (5124 + 60)

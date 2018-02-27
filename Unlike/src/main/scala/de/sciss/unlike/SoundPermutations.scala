@@ -1,3 +1,16 @@
+/*
+ *  SoundPermutations.scala
+ *  (Unlike)
+ *
+ *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *
+ *	This software is published under the GNU General Public License v2+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package de.sciss.unlike
 
 import de.sciss.file._
@@ -41,9 +54,9 @@ object SoundPermutations extends App {
     }
 
     fut.onSuccess  { case _ => println("All done.") }
-    fut.onComplete { case _ => sys.exit()           }
+    fut.onComplete {      _ => sys.exit()           }
   }
-  
+
   def run(inA: File, inB: File): Unit = {
     val idA = inA.base.substring(8)
     val idB = inB.base.substring(8)

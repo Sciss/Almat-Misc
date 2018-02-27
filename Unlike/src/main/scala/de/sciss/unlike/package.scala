@@ -2,7 +2,7 @@
  *  package.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -45,7 +45,7 @@ package object unlike {
   def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
     val sync = mkBlockTread()
     p.onComplete {
-      case _ => sync.synchronized(sync.notify())
+      _ => sync.synchronized(sync.notify())
     }
   }
 
