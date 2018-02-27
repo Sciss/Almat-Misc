@@ -100,6 +100,10 @@ object MoorMotionStudy1b {
       opt[Unit] ("verbose")
         .text ("Print additional information such as min/max translations")
         .action   { (_, c) => c.copy(verbose = true) }
+
+      opt[Int] ("jpg-quality")
+        .text (s"JPEG quality (default: ${default.jpgQuality})")
+        .action   { (v, c) => c.copy(jpgQuality = v) }
     }
     p.parse(args, default).fold(sys.exit(1)) { config =>
       run(config)
