@@ -50,7 +50,9 @@ object MoorMotionStudy1b {
                     gamma     : Double  = 1.0,
                     noise     : Int     = 0,
                     jpgQuality: Int     = 95,
-                    verbose   : Boolean = false
+                    verbose   : Boolean = false,
+                    maxDispX  : Int     = 0,
+                    maxDispY  : Int     = 0
                    )
 
   def main(args: Array[String]): Unit = {
@@ -104,6 +106,14 @@ object MoorMotionStudy1b {
       opt[Int] ("jpg-quality")
         .text (s"JPEG quality (default: ${default.jpgQuality})")
         .action   { (v, c) => c.copy(jpgQuality = v) }
+
+      opt[Int] ("max-tx")
+        .text (s"Maximum horizontal displacement per frame (default: ${default.maxDispX})")
+        .action   { (v, c) => c.copy(maxDispX = v) }
+
+      opt[Int] ("max-ty")
+        .text (s"Maximum vertical displacement per frame (default: ${default.maxDispY})")
+        .action   { (v, c) => c.copy(maxDispY = v) }
     }
     p.parse(args, default).fold(sys.exit(1)) { config =>
       run(config)
@@ -123,9 +133,10 @@ object MoorMotionStudy1b {
     if (!renderDir.exists()) renderDir.mkdir()
 
     val c1 = EstimateVideoMotion.Config(
-      input   = inputTemp, // base / "moor_8024" / "moor_8024-%05d.jpg",
-      output  = Some(jsonDir / "moor_8024-%05d-%05d.json"),
-      frames  = startFrame to endFrame
+      input     = inputTemp, // base / "moor_8024" / "moor_8024-%05d.jpg",
+      output    = Some(jsonDir / "moor_8024-%05d-%05d.json"),
+      frames    = startFrame to endFrame,
+      settings  = PhaseCorrelation.Settings(txMax = maxDispX, tyMax = maxDispY)
     )
     val c2 = c1.copy(frames = startFrame     to endFrame by 2)
     val c3 = c1.copy(frames = startFrame + 1 to endFrame by 2)

@@ -52,6 +52,7 @@ object PhaseCorrelation extends ProcessorFactory {
   case class Settings(downSample: Double = 1.0,
                       thresh1: Double = 0.5, transRadius: Int = 100,
                       thresh2: Double = 0.33,
+    txMax: Int = 0, tyMax: Int = 0,
     rotateMin: Double = 0.0, rotateMax: Double = 0.0, rotateSteps: Int = 0,
     scaleMin : Double = 1.0, scaleMax : Double = 1.0, scaleSteps : Int = 0)
 
@@ -237,9 +238,11 @@ object PhaseCorrelation extends ProcessorFactory {
           cy += q * (if (y >= hh) y - h else y)
           cs += q
         }
-       x += 1
+        x += 1
+        if (x == settings.txMax) x = w - settings.txMax
       }
       y += 1
+      if (y == settings.tyMax) y = h - settings.tyMax
     }
 
     cx /= cs
