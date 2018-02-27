@@ -21,7 +21,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
 
 object MoorMotionStudy1b {
-  val moorBase = userHome / "Documents" / "projects" / "Unlike"
+  val moorBase: File = userHome / "Documents" / "projects" / "Unlike"
 
   val moorStudyConfig = Config(
     inputTemp   = moorBase / "moor_8024" / "moor_8024-%05d.jpg",
@@ -70,11 +70,11 @@ object MoorMotionStudy1b {
 
       opt[Unit] ('a', "analyze-only")
         .text ("Only perform analysis step")
-        .action   { (v, c) => c.copy(mode = Mode.Analyze) }
+        .action   { (_, c) => c.copy(mode = Mode.Analyze) }
 
       opt[Unit] ('w', "write-only")
         .text ("Only perform write step")
-        .action   { (v, c) => c.copy(mode = Mode.Write) }
+        .action   { (_, c) => c.copy(mode = Mode.Write) }
     }
     p.parse(args, Config()).fold(sys.exit(1)) { config =>
       run(config)
