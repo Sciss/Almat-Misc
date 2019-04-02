@@ -25,14 +25,13 @@ object ModImageSynth extends Module {
   val name = "Image Synthesizer"
 
   def apply[S <: Sys[S]]()(implicit tx: S#Tx): FScape[S] = {
-    import de.sciss.numbers.Implicits._
     import de.sciss.fscape.lucre.graph.Ops._
     import de.sciss.fscape.graph.{AudioFileIn => _, AudioFileOut => _, ImageFileIn => _, ImageFileOut => _, ImageFileSeqIn => _, ImageFileSeqOut => _, _}
     import de.sciss.fscape.lucre.graph._
     val f = FScape[S]()
     import de.sciss.fscape.lucre.MacroImplicits._
     f.setGraph {
-      // version 01-Aug-2018 - Mellite 2.25.0
+      // version 02-Apr-2019 - Mellite 2.33.0
       // written by Hanns Holger Rutz
       // license: CC BY-SA 4.0
 
@@ -43,7 +42,14 @@ object ModImageSynth extends Module {
       val in1         = in0.out(0)
       val dur         = "dur"       .attr(10)
       val numVoices   = "maxVoices" .attr(128).min(h)
+
+      val gainType    = "gain-type" .attr(0)
+      val gainDb      = "gain-db"   .attr(0.0)
+      val gainAmt     = gainDb.dbAmp
+      val fileType    = "out-type"  .attr(0)
+      val smpFmt      = "out-format".attr(1)
       val sampleRate  = "sampleRate".attr(44100.0)
+
       val minFreq     = "minFreq"   .attr(100)
       val maxFreq     = "maxFreq"   .attr(18000)
       val fadeTime    = "fadeTime"  .attr(0.1)
@@ -77,7 +83,12 @@ object ModImageSynth extends Module {
       val osc         = (SinOsc(freq/sampleRate) * amp).take(framesXY)
 
       val synthesized = Frames(osc)
-      Progress(synthesized / framesXY, Metro(sampleRate), "synthesized")
+
+      def mkProgress(frames: GE, n: GE, label: String): Unit =
+        Progress(frames / n, Metro(sampleRate) | Metro(n - 1),
+          label)
+
+      mkProgress(synthesized, framesXY, "synthesized")
 
       // XXX TODO --- this is a limitation of using overlap-add,
       // we have to shift at least one frame per window...
@@ -85,18 +96,24 @@ object ModImageSynth extends Module {
       val framesOut   = numFrames + (numVoices - 1)
       val sig0        = mix
 
-      // normalize
-      //val sig1        = BufferDisk(sig0)
-      //val max         = RunningMax(sig0.abs).last
-      //
-      //val gain        = max.reciprocal * (-0.2.dbAmp)
-      val sig1 = sig0
-      val gain = -12.0.dbAmp
-      val sig         = sig1 * gain
+      val sig = If (gainType sig_== 0) Then {
+        val rsmpBuf   = BufferDisk(sig0)
+        val rMax      = RunningMax(Reduce.max(sig0.abs))
+        val read      = Frames(rMax)
+        mkProgress(read, framesOut, "analyze")
+        val maxAmp    = rMax.last
+        val div       = maxAmp + (maxAmp sig_== 0.0)
+        val gainAmtN  = gainAmt / div
+        rsmpBuf * gainAmtN
 
-      val written     = AudioFileOut("out", sig, sampleRate = sampleRate,
-        sampleFormat = 2 /* 1 */)
-      Progress(written / framesOut, Metro(sampleRate), "written")    }
+      } Else {
+        sig0 * gainAmt
+      }
+
+      val written     = AudioFileOut("out", sig, fileType = fileType,
+        sampleFormat = smpFmt, sampleRate = sampleRate)
+      mkProgress(written, framesOut, "written")
+    }
     f
   }
 
@@ -107,7 +124,7 @@ object ModImageSynth extends Module {
     val w = Widget[S]()
     import de.sciss.synth.proc.MacroImplicits._
     w.setGraph {
-      // version 01-Apr-2019
+      // version 02-Apr-2019
       val r = Runner("run")
       val m = r.messages
       m.changed.filter(m.nonEmpty) ---> Println(m.mkString("\n"))
@@ -125,6 +142,31 @@ object ModImageSynth extends Module {
       val attrInverted = "run:inverted".attr(false)
       (ggInverted.index() > 0) ---> attrInverted
       ggInverted.index() = attrInverted.toInt
+
+      val ggOutType = ComboBox(
+        List("AIFF", "Wave", "Wave64", "IRCAM", "Snd")
+      )
+      ggOutType.index <--> "run:out-type".attr(0)
+
+      val ggOutFmt = ComboBox(List(
+        "16-bit int",
+        "24-bit int",
+        "32-bit float",
+        "32-bit int",
+        "64-bit float"
+      ))
+      ggOutFmt.index <--> "run:out-format".attr(1)
+
+      val ggGain = DoubleField()
+      ggGain.unit = "dB"
+      ggGain.min  = -180.0
+      ggGain.max  = +180.0
+      ggGain.value <--> "run:gain-db".attr(0.0)
+
+      val ggGainType = ComboBox(
+        List("Normalized", "Immediate")
+      )
+      ggGainType.index <--> "run:gain-type".attr(0)
 
       val ggSR  = ComboBox(
         List(44100, 48000, 88200, 96000, 176400, 192000)
@@ -188,8 +230,11 @@ object ModImageSynth extends Module {
       val p = GridPanel(
         mkLabel("Image Input:" ), in,
         mkLabel("Sound Output:"), out,
-        mkLabel("Sample Rate:"), left(ggSR, Label("Hz")),
-        Label(" "), Empty(),
+        mkLabel("Output Format:"),
+        left(ggOutType, ggOutFmt, ggSR, Label("Hz")),
+        //  Label(" "), Empty(),
+        mkLabel("Gain:"), left(ggGain, ggGainType),
+        Label(" "), Label(""),
         mkLabel("Colors:"), left(ggInverted),
         mkLabel("Duration:"), ggDur, // FlowPanel(ggDur),
         mkLabel("Max.freq:"), ggMaxFreq,
