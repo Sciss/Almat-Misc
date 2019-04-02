@@ -43,6 +43,7 @@ lazy val root = project.withId(baseNameL).in(file("."))
     ),
     libraryDependencies ++= Seq(
       "de.sciss" %% "fscape-modules" % deps.main.fscape,           // signal processing
+      "de.sciss" %% "fscape-views"   % deps.main.fscape,           // signal processing
       "de.sciss" %% "lucre-bdb"      % deps.main.lucre,            // object system (database backend)
     )
   )

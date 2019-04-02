@@ -177,8 +177,8 @@ object ModPhaseDiff extends Module {
         l
       }
 
-      val lbIn = mkLabel("Input Image Sequence:")
-      val pfIn = PathField(PathField.Open)
+      val lbIn  = mkLabel("Input Image Sequence:")
+      val pfIn  = ImageFileIn()
       pfIn.title = "Input Image Sequence"
       pfIn.value <--> Artifact("run:in")
 
