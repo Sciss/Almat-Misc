@@ -31,7 +31,7 @@ object ModPhaseDiff extends Module {
     val f = FScape[S]()
     import de.sciss.fscape.lucre.MacroImplicits._
     f.setGraph {
-      // version 25-Mar-2019 - Mellite 2.33
+      // version 02-Apr-2019 - Mellite 2.33
       // written by Hanns Holger Rutz
       // license: CC BY-SA 4.0
 
@@ -40,6 +40,10 @@ object ModPhaseDiff extends Module {
       val resampleIn    = "resample-in" .attr(1)
       val resampleOut   = "resample-out".attr(1)
       val noise         = "noise"       .attr(0.0)
+
+      val fileType      = "out-type"   .attr(0)
+      val smpFmt        = "out-format" .attr(0)
+      val quality       = "out-quality".attr(90)
 
       val numFramesIn   = (firstFrameIn absDif lastFrameIn) + (1: GE)
       val frameInStep   = (lastFrameIn >= firstFrameIn) * 2 - 1
@@ -149,8 +153,8 @@ object ModPhaseDiff extends Module {
 
       val composite = phaseDiffI // left + right
       ImageFileSeqOut(in = composite, key = "out",
-        width = fftSize /* * 2 */, height = fftSize,
-        indices = indicesOut)
+        width = fftSize /* * 2 */, height = fftSize, indices = indicesOut,
+        fileType = fileType, sampleFormat = smpFmt, quality = quality)
 
       val TotalSize = numFramesOut * fftSizeSq
       val prog = Frames(composite) / TotalSize
@@ -166,7 +170,7 @@ object ModPhaseDiff extends Module {
     val w = Widget[S]()
     import de.sciss.synth.proc.MacroImplicits._
     w.setGraph {
-      // version 01-Apr-2019
+      // version 02-Apr-2019
       val r = Runner("run")
       val m = r.messages
       m.changed.filter(m.nonEmpty) ---> Println(m.mkString("\n"))
@@ -183,9 +187,12 @@ object ModPhaseDiff extends Module {
       pfIn.value <--> Artifact("run:in")
 
       val lbOut  = mkLabel("Output Image Sequence:")
-      val pfOut = PathField(PathField.Save)
+      val pfOut = ImageFileOut(qualityVisible = true)
       pfOut.title = "Output Image Sequence"
-      pfOut.value <--> Artifact("run:out")
+      pfOut.value         <--> Artifact("run:out")
+      pfOut.fileType      <--> "run:out-type"   .attr(0)
+      pfOut.sampleFormat  <--> "run:out-format" .attr(0)
+      pfOut.quality       <--> "run:out-quality".attr(90)
 
       val lbInFirstIdx = mkLabel("Input First Frame:")
       val ggInFirstIdx = IntField()
@@ -225,11 +232,12 @@ object ModPhaseDiff extends Module {
         lbOut        , pfOut,
         lbInFirstIdx , ggInFirstIdx,
         lbInLastIdx  , ggInLastIdx,
+        Label(" "), Empty(),
         lbResampleIn , ggResampleIn,
         lbResampleOut, ggResampleOut,
         lbNoise      , ggNoise,
       )
-      pTop.compactColumns = true
+      pTop.compact = true
       pTop.columns = 2
 
 
