@@ -167,8 +167,7 @@ object ModPhaseDiff extends Module {
         fileType = fileType, sampleFormat = smpFmt, quality = quality)
 
       val TotalSize = numFramesOut * fftSizeSq
-      val prog = Frames(composite) / TotalSize
-      Progress(in = prog, trig = Metro(fftSizeSq))
+      ProgressFrames(composite, TotalSize)
     }
     f
   }
@@ -197,7 +196,7 @@ object ModPhaseDiff extends Module {
       pfIn.value <--> Artifact("run:in")
 
       val lbOut  = mkLabel("Output Image Sequence:")
-      val pfOut = ImageFileOut(qualityVisible = true)
+      val pfOut = ImageFileOut()
       pfOut.title = "Output Image Sequence"
       pfOut.value         <--> Artifact("run:out")
       pfOut.fileType      <--> "run:out-type"   .attr(0)

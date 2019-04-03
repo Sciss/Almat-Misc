@@ -82,13 +82,10 @@ object ModImageSynth extends Module {
       val amp         = amp1 * fade
       val osc         = (SinOsc(freq/sampleRate) * amp).take(framesXY)
 
-      val synthesized = Frames(osc)
+      def mkProgress(x: GE, n: GE, label: String): Unit =
+        ProgressFrames(x, n, label)
 
-      def mkProgress(frames: GE, n: GE, label: String): Unit =
-        Progress(frames / n, Metro(sampleRate) | Metro(n - 1),
-          label)
-
-      mkProgress(synthesized, framesXY, "synthesized")
+      mkProgress(osc, framesXY, "synthesized")
 
       // XXX TODO --- this is a limitation of using overlap-add,
       // we have to shift at least one frame per window...
@@ -97,14 +94,14 @@ object ModImageSynth extends Module {
       val sig0        = mix
 
       val sig = If (gainType sig_== 0) Then {
-        val rsmpBuf   = BufferDisk(sig0)
+        val sig0Buf   = BufferDisk(sig0)
         val rMax      = RunningMax(Reduce.max(sig0.abs))
         val read      = Frames(rMax)
         mkProgress(read, framesOut, "analyze")
         val maxAmp    = rMax.last
         val div       = maxAmp + (maxAmp sig_== 0.0)
         val gainAmtN  = gainAmt / div
-        rsmpBuf * gainAmtN
+        sig0Buf * gainAmtN
 
       } Else {
         sig0 * gainAmt
