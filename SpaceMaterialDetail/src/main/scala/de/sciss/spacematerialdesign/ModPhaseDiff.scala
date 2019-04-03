@@ -31,7 +31,7 @@ object ModPhaseDiff extends Module {
     val f = FScape[S]()
     import de.sciss.fscape.lucre.MacroImplicits._
     f.setGraph {
-      // version 02-Apr-2019 - Mellite 2.33
+      // version 03-Apr-2019 - Mellite 2.33
       // written by Hanns Holger Rutz
       // license: CC BY-SA 4.0
 
@@ -50,10 +50,10 @@ object ModPhaseDiff extends Module {
       val indicesIn     = ArithmSeq(firstFrameIn, frameInStep, length = numFramesIn)
       val numFramesOut  = (numFramesIn * resampleIn - 1) * resampleOut
       val indicesOut    = ArithmSeq(1, length = numFramesOut)
-      val useWindow     = true
+      val useWindow     = "use-window".attr(1)
       val center        = true
-      val diff          = true
-      val cosh          = true
+      val diff          = "use-diff"  .attr(1)
+      val cosh          = "use-cosh"  .attr(1)
       val coshGain      = 10.0
       val hpf           = false
 
@@ -62,15 +62,15 @@ object ModPhaseDiff extends Module {
       val wIn       = videoIn0.width  // 1920
       val hIn       = videoIn0.height // 1080
 
-      wIn.poll(0, "width")
-      hIn.poll(0, "height")
+      //wIn.poll(0, "width")
+      //hIn.poll(0, "height")
 
       val videoIn   = If (resampleIn sig_== 1) Then {
         videoIn0
       } Else {
         ResampleWindow(videoIn0, size = wIn*hIn,
           factor = resampleIn, minFactor = resampleIn,
-          rollOff = 0.9, kaiserBeta = 12, zeroCrossings = 15
+          rollOff = 0.9, kaiserBeta = 12, zeroCrossings = 9 /* 15 */
         )
       }
 
@@ -106,7 +106,12 @@ object ModPhaseDiff extends Module {
 
       val frameSize = fftSize.squared
       // XXX TODO --- using crop directly without windowing has very interesting phase images
-      val windowed  = if (!useWindow) crop else mkWindow(crop)
+      val windowed  = If (useWindow) Then {
+        mkWindow(crop)
+      } Else {
+        crop
+      }
+
       val seqA      = BufferMemory(windowed, frameSize)
       val seqB      = windowed.drop         (frameSize)
       val fftA      = Real2FullFFT(seqA, rows = fftSize, columns = fftSize)
@@ -121,10 +126,12 @@ object ModPhaseDiff extends Module {
       val iFFT      = iFFT0 / fftSize
 
       val phaseBase = iFFT
-      val phaseDiff0: GE = if (!diff) phaseBase else {
+      val phaseDiff0: GE = If (diff) Then {
         val phaseA  = BufferMemory(phaseBase, frameSize)
         val phaseB  = phaseBase.drop         (frameSize)
         phaseB - phaseA
+      } Else {
+        phaseBase
       }
 
       val phaseDiff1 = if (!center) phaseDiff0 else AffineTransform2D.translate(phaseDiff0,
@@ -134,8 +141,11 @@ object ModPhaseDiff extends Module {
 
       val phaseDiff2 = if (!hpf) phaseDiff1 else HPF(phaseDiff1, freqN = 0.02) // + phaseDiff1
 
-      val phaseDiff3 = if (!cosh) phaseDiff2 else
+      val phaseDiff3 = If (cosh) Then {
         (phaseDiff2 * coshGain).cosh /* .reciprocal */ - 1.0 // absDif 0.0
+      } Else {
+        phaseDiff2
+      }
 
       val phaseDiff = phaseDiff3
 
@@ -144,7 +154,7 @@ object ModPhaseDiff extends Module {
       val phaseDiffI1 = If (resampleOut sig_== 1) Then phaseDiffI0 Else {
         ResampleWindow(phaseDiffI0, size = fftSizeSq,
           factor = resampleOut, minFactor = resampleOut,
-          rollOff = 0.9, kaiserBeta = 12, zeroCrossings = 15)
+          rollOff = 0.9, kaiserBeta = 12, zeroCrossings = 9 /* 15 */)
       }
 
       val phaseDiffI2 = If (noise <= 0) Then phaseDiffI1 Else { phaseDiffI1 + WhiteNoise(noise) }
@@ -170,7 +180,7 @@ object ModPhaseDiff extends Module {
     val w = Widget[S]()
     import de.sciss.synth.proc.MacroImplicits._
     w.setGraph {
-      // version 02-Apr-2019
+      // version 03-Apr-2019
       val r = Runner("run")
       val m = r.messages
       m.changed.filter(m.nonEmpty) ---> Println(m.mkString("\n"))
@@ -220,22 +230,35 @@ object ModPhaseDiff extends Module {
       ggNoise.max = 1.0
       ggNoise.value <--> "run:noise".attr(0.0)
 
-      // def left(c: Component*): Component = {
-      //   val f = FlowPanel(c: _*)
-      //   f.align = Align.Leading
-      //   f.vGap = 0
-      //   f
-      // }
+      val lbWin = mkLabel("Apply Window:")
+      val ggWin = CheckBox()
+      ggWin.selected <--> "run:use-window".attr(true)
+
+      val lbDiff = mkLabel("  Differentiate:")
+      val ggDiff = CheckBox()
+      ggDiff.selected <--> "run:use-diff".attr(true)
+
+      val lbCosH = mkLabel("  Use CosH Map:")
+      val ggCosH = CheckBox()
+      ggCosH.selected <--> "run:use-cosh".attr(true)
+
+      def left(c: Component*): Component = {
+        val f = FlowPanel(c: _*)
+        f.align = Align.Leading
+        f.vGap = 0
+        f
+      }
 
       val pTop = GridPanel(
-        lbIn         , pfIn,
-        lbOut        , pfOut,
-        lbInFirstIdx , ggInFirstIdx,
-        lbInLastIdx  , ggInLastIdx,
-        Label(" "), Empty(),
-        lbResampleIn , ggResampleIn,
-        lbResampleOut, ggResampleOut,
-        lbNoise      , ggNoise,
+        lbIn          , pfIn,
+        lbOut         , pfOut,
+        lbInFirstIdx  , ggInFirstIdx,
+        lbInLastIdx   , ggInLastIdx,
+        Label(" ")    , Empty(),
+        lbResampleIn  , ggResampleIn,
+        lbResampleOut , ggResampleOut,
+        lbNoise       , ggNoise,
+        lbWin, left(ggWin, lbDiff, ggDiff, lbCosH, ggCosH)
       )
       pTop.compact = true
       pTop.columns = 2
