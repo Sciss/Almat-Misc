@@ -1,6 +1,6 @@
 /*
  *  ModPhaseDiff.scala
- *  (SpaceMaterialDesign)
+ *  (SpaceMaterialDetail)
  *
  *  Copyright (c) 2019 Hanns Holger Rutz. All rights reserved.
  *
@@ -11,7 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.spacematerialdesign
+package de.sciss.spacematerialdetail
 
 import de.sciss.fscape.GE
 import de.sciss.fscape.lucre.FScape

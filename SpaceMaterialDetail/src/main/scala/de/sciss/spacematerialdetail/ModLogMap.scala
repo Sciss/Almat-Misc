@@ -1,6 +1,6 @@
 /*
  *  ModLogMap.scala
- *  (SpaceMaterialDesign)
+ *  (SpaceMaterialDetail)
  *
  *  Copyright (c) 2019 Hanns Holger Rutz. All rights reserved.
  *
@@ -11,7 +11,7 @@
  *  contact@sciss.de
  */
 
-package de.sciss.spacematerialdesign
+package de.sciss.spacematerialdetail
 
 import de.sciss.fscape.GE
 import de.sciss.fscape.lucre.FScape
@@ -29,7 +29,7 @@ object ModLogMap extends Module {
     val fsc = FScape[S]()
     import de.sciss.fscape.lucre.MacroImplicits._
     fsc.setGraph {
-      // version 05-Apr-2019 - Mellite 2.33.0
+      // version 06-Apr-2019 - Mellite 2.33.0
       // written by Hanns Holger Rutz
       // license: CC BY-SA 4.0
       val maxIt   = 400 // "max-iter".attr(100).max(2)
@@ -38,7 +38,7 @@ object ModLogMap extends Module {
       val ra      = "r-min"   .attr(0.0)
       val rb      = "r-max"   .attr(4.0)
       val invert  = "invert"  .attr(1).clip()
-      val pow     = "pow"     .attr(1.0)
+      // val pow     = "pow"     .attr(1.0)
       val y0      = "y-min"   .attr(0.0)
       val y1      = "y-max"   .attr(1.0)
 
@@ -46,10 +46,13 @@ object ModLogMap extends Module {
       val smpFmt        = "out-format" .attr(0)
       val quality       = "out-quality".attr(90)
 
-      def bentFun(p: GE = 0.96): (GE, GE) => GE =
-        (x, r) => (r * x * (1.0 - x)).pow(p)
+      // def bentFun(p: GE = 0.96): (GE, GE) => GE =
+      //  (x, r) => (r * x * (1.0 - x)).pow(p)
 
-      val fun = bentFun(pow)
+      def stdFun: (GE, GE) => GE =
+        (x, r) => r * x * (1.0 - x)
+
+      val fun = stdFun // bentFun(pow)
 
       val itH   = maxIt/2 // * 2/3
       val itSkip = maxIt - itH
@@ -68,7 +71,9 @@ object ModLogMap extends Module {
       val (_, fSeq) = (0 until maxIt).foldLeft[(GE, GE)]((0.5, Empty())) {
         case ((f, g), it) =>
           val fN = fun(f, r)                       // recursion
-        val gN = if (it < itSkip) g else g ++ fN // collect second half of iterations
+          val gN = if (it < itSkip) g else {
+            g ++ BufferMemory(fN, w) // collect second half of iterations
+          }
           (fN, gN)
       }
 
@@ -161,13 +166,13 @@ object ModLogMap extends Module {
       //ggYMax.max = 1.0
       ggYMax.value <--> "run:y-max".attr(1.0)
 
-      val lbPow = mkLabel("Pow (Bend):")
-      val ggPow = DoubleField()
-      ggPow.min = 0.0
-      ggPow.step = 0.01
-      ggPow.decimals = 3
-      //ggPow.max = 1.0
-      ggPow.value <--> "run:pow".attr(1.0)
+      // val lbPow = mkLabel("Pow (Bend):")
+      // val ggPow = DoubleField()
+      // ggPow.min = 0.0
+      // ggPow.step = 0.01
+      // ggPow.decimals = 3
+      // //ggPow.max = 1.0
+      // ggPow.value <--> "run:pow".attr(1.0)
 
       val lbInvert = mkLabel("Invert Colors:")
       val ggInvert = CheckBox()
@@ -189,8 +194,8 @@ object ModLogMap extends Module {
         lbRMax        , ggRMax,
         lbYMin        , ggYMin,
         lbYMax        , ggYMax,
-        lbPow         , ggPow,
-        lbInvert      , ggInvert,
+        // lbPow         , ggPow,
+        lbInvert      , ggInvert
       )
       pTop.compact = true
       pTop.columns = 2
