@@ -15,18 +15,18 @@ object ConvTest extends App {
   val cfg       = Control.Config()
   cfg.useAsync  = false
   cfg.progressReporter = p => Swing.onEDT(gui.progress = p.total)
-  cfg.blockSize = 512 // 2048
+  cfg.blockSize = 2048 // 512 // 2048
 
   val g = Graph {
     import graph._
-    val fIn1    = file("/data/projects/Almat/events/xcoax2020/postcard/render-1/outFx.jpg")
-    val fIn2    = file("/data/projects/Almat/events/xcoax2020/postcard/render/outFx.jpg")
-    val baseDir = fIn1.parent
+    val fIn1    = file("/data/projects/Almat/events/xcoax2020/postcard/render-1/out.png")
+    val fIn2    = file("/data/projects/Almat/events/xcoax2020/postcard/render/out.png")
+    val baseDir = fIn1.parent.parent
     val fOut    = baseDir / "test.png"
     require (baseDir.canWrite)
 
-    val width   = 2048 // 3496 // 512
-    val height  = 2048 // 2480 // 512
+    val width   = 3488 // 2048 // 3496 // 512
+    val height  = 2464 // 2048 // 2480 // 512
     val frameSize = width * height
     val i1      = -ImageFileIn(fIn1, numChannels = 1).take(frameSize) + 1.0
     val i2      = -ImageFileIn(fIn2, numChannels = 1).take(frameSize) + 1.0
