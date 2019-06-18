@@ -1,10 +1,22 @@
+/*
+ *  ConvTest.scala
+ *  (xCoAx2020-Postcard)
+ *
+ *  Copyright (c) 2019 Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v2+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package de.sciss.xcoax2020postcard
 
 import de.sciss.file._
 import de.sciss.fscape.gui.SimpleGUI
 import de.sciss.fscape.stream.Control
 import de.sciss.fscape.{Graph, graph}
-import de.sciss.synth.io.AudioFileSpec
 
 import scala.swing.Swing
 
@@ -85,7 +97,6 @@ object ConvTest extends App {
     val sig     = i4.clip(0.0, 1.0)  // BufferMemory(i4, frameSize) // .clip(0.0, 1.0)
     sig.poll(0, "sig-0")
 
-// TODO: this breaks the graph
     val specOut = ImageFile.Spec(width = width, height = height, numChannels = 1,
       sampleFormat = ImageFile.SampleFormat.Int16)
     ImageFileOut(file = fOut, spec = specOut, in = sig)

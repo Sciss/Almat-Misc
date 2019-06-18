@@ -1,6 +1,6 @@
 /*
  *  Main.scala
- *  (xCoAx2020-Postcards)
+ *  (xCoAx2020-Postcard)
  *
  *  Copyright (c) 2019 Hanns Holger Rutz. All rights reserved.
  *
@@ -95,9 +95,9 @@ object Main {
     gngStepSize = 200, // 500,
     interim     = 50,
     interimImages = true,
-    widthOut    = 3496, // 1480 * 4,
+    widthOut    = 3488, // 3496, // 1480 * 4,
     rngSeed     = 3, // 0,
-    heightOut   = 2480, // 1050 * 4,
+    heightOut   = 2464, // 2480, // 1050 * 4,
     strokeWidth = 1.0,
     decay       = 0.99,
     invertOut   = true,
@@ -212,25 +212,16 @@ object Main {
 //    }
 //    p.parse(args, default).fold(sys.exit(1)) { config =>
 
-    val config = selected
-
-      require(config.imgInF.isFile, s"Input image ${config.imgInF} does not exist.")
+    for (idx <- 39 to 250) {
+      println(s":::::::: idx = $idx ::::::::")
+      val config = selected.copy(
+        imgInF        = file(f"/data/projects/Almat/events/xcoax2020/postcard/templates/template$idx%04d.png"),
+        imgOutF       = file(f"/data/projects/Almat/events/xcoax2020/postcard/render/out$idx%04d.png"),
+        rngSeed       = idx,
+        interimImages = false
+      )
       run(config)
-//    }
-  }
-
-  def run(config: Config): Unit = {
-//    if (config.fGNG.length() > 0L) {
-//      println(s"GNG file ${config.fGNG} already exists. Not overwriting.")
-//    } else {
-      runGNG(config)
-//    }
-//
-//    if (config.imgOutF.length() > 0L) {
-//      println(s"Image file ${config.imgOutF} already exists. Not overwriting.")
-//    } else {
-//      renderImage(config)()
-//    }
+    }
   }
 
   def writeAccImage(acc: Array[Double], fOut: File, w: Int, h: Int, invertOut: Boolean): Unit = {
@@ -386,7 +377,7 @@ object Main {
     }
   }
 
-  def runGNG(config: Config): Unit = {
+  def run(config: Config): Unit = {
     import config._
     val img       = ImageIO.read(imgInF)
     val c         = new ComputeGNG
@@ -412,7 +403,8 @@ object Main {
     c.autoStopB   = false
     c.reset()
     //    c.getRNG.setSeed(108L)
-    c.getRNG.setSeed(rngSeed)
+    var rngSeed1 = rngSeed
+    c.getRNG.setSeed(rngSeed1)
     c.addNode(null)
     c.addNode(null)
 
@@ -423,6 +415,8 @@ object Main {
     val arrAcc  = new Array[Double](wOut * hOut)
 
 //    val interimF      = if (interim != 0) interim else 1000
+
+    var hasGrowth     = false
 
     val res           = new ComputeGNG.Result
     var lastProgress  = 0
@@ -461,6 +455,21 @@ object Main {
       } else {
         lastN = c.nNodes
         lastE = c.nEdges
+      }
+
+      if (!hasGrowth) {
+        if (iteration == 15) {
+          rngSeed1 += 1000
+          println(s"No growth. Adjusting seed to $rngSeed1")
+          println("_" * 100)
+          c.reset()
+          c.getRNG.setSeed(rngSeed1)
+          c.addNode(null)
+          c.addNode(null)
+          iteration = 0
+        } else if (c.nNodes > 4 && c.nEdges > 2) {
+          hasGrowth = true
+        }
       }
     }
 
