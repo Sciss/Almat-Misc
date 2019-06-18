@@ -19,3 +19,13 @@ The steps are:
 - `Main`
 - `CenterImages`
 - `Composition`
+- `RotateSetDPI`
+- `MakePDF`
+
+Image Magick for converting to 2-color png, setting 600 dpi resolution, rotating anti-clockwise:
+
+    convert outcc0001.png -monochrome -density 600 -rotate -90 outcc0001bw.png
+
+Inkscape convert svg to pdf
+
+    inkscape -A postal_xcoax2020almat_link.pdf postal_xcoax2020almat_link.svg

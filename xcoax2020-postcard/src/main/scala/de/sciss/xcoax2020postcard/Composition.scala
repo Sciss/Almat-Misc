@@ -58,7 +58,7 @@ object Composition {
   def any2stringadd: Any = ()
 
   def main(args: Array[String]): Unit = {
-    for (idx <- 4 to 4) {
+    for (idx <- 1 to 190) {
       val tempIn  = file("/data/projects/Almat/events/xcoax2020/postcard/centered/outc%04d.png")
       val tempOut = file("/data/projects/Almat/events/xcoax2020/postcard/composed/outcc%04d.png")
       val fIn     = formatTemplate(tempIn , idx)
