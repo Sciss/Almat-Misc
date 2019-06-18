@@ -16,7 +16,7 @@ package de.sciss.xcoax2020postcard
 import de.sciss.file._
 import de.sciss.fscape.gui.SimpleGUI
 import de.sciss.fscape.stream.Control
-import de.sciss.fscape.{Graph, graph}
+import de.sciss.fscape.{GE, Graph, graph}
 
 import scala.swing.Swing
 
@@ -29,19 +29,46 @@ object ConvTest extends App {
   cfg.progressReporter = p => Swing.onEDT(gui.progress = p.total)
   cfg.blockSize = 2048 // 512 // 2048
 
+  def formatTemplate(temp: File, idx: Int): File = {
+    temp.parent / temp.name.format(idx)
+  }
+
   val g = Graph {
     import graph._
-    val fIn1    = file("/data/projects/Almat/events/xcoax2020/postcard/render-1/out.png")
-    val fIn2    = file("/data/projects/Almat/events/xcoax2020/postcard/render/out.png")
-    val baseDir = fIn1.parent.parent
-    val fOut    = baseDir / "test.png"
+    val tempIn  = file("/data/projects/Almat/events/xcoax2020/postcard/centered/outc%04d.png")
+    val baseDir = tempIn.parent.parent
+    val fOut    = baseDir / "test-conv.png"
     require (baseDir.canWrite)
 
-    val width   = 3488 // 2048 // 3496 // 512
-    val height  = 2464 // 2048 // 2480 // 512
+    val width   = 3744  // 3732 // 3488 // 2048 // 3496 // 512
+    val height  = 2720  // 2464 // 2048 // 2480 // 512
     val frameSize = width * height
-    val i1      = -ImageFileIn(fIn1, numChannels = 1).take(frameSize) + 1.0
-    val i2      = -ImageFileIn(fIn2, numChannels = 1).take(frameSize) + 1.0
+    val i1: GE  = -ImageFileIn(formatTemplate(tempIn, 9), numChannels = 1).take(frameSize) + (1.0: GE)
+    val i2: GE  = {
+      val seq = (1 to 4 /* 8 */).map { idx =>
+        ImageFileIn(formatTemplate(tempIn, idx), numChannels = 1): GE
+      }
+      val mix = -seq.reduce(_ + _).take(frameSize) + (1.0: GE)
+
+      val fftSize = (math.max(width, height): GE).nextPowerOfTwo
+      val mixE = AffineTransform2D.translate(mix, widthIn = width, heightIn = height, widthOut = fftSize, heightOut = fftSize,
+        tx = 0, ty = 0, zeroCrossings = 0)
+
+      val f1N = 0.1
+      def sinc1 = GenWindow(fftSize /* width */, shape = GenWindow.Sinc, param = 0.5) * 0.5 -
+                  GenWindow(fftSize /* width */, shape = GenWindow.Sinc, param = f1N) * f1N
+
+      val sinc2 = RepeatWindow(sinc1, 1, fftSize /* width */)
+      val sinc  = (sinc1 * sinc2).take(frameSize)
+      val mixF  = Real2FFT(mixE , rows = fftSize, columns = fftSize)
+      val sincF = Real2FFT(sinc, rows = fftSize, columns = fftSize)
+      val cv    = mixF.complex * sincF
+      val ret   = Real2IFFT(cv, rows = fftSize, columns = fftSize)
+      val retS  = AffineTransform2D.translate(ret, widthIn = fftSize, heightIn = fftSize, widthOut = width, heightOut = height,
+        tx = 0, ty = 0, zeroCrossings = 0)
+
+      retS // mix
+    }
 //    val i1      = ImageFileIn(fIn1, numChannels = 1).take(frameSize)
 //    val i2      = ImageFileIn(fIn2, numChannels = 1).take(frameSize)
     val kernel  = 32
@@ -58,8 +85,8 @@ object ConvTest extends App {
     val m2f       = Real2FFT(m2, rows = kernel, columns = kernel)
     val m3f       = m1f.complex * m2f
     val m3        = Real2IFFT(m3f, rows = kernel, columns = kernel)
-//    val flt       = ResizeWindow(m3, size = kernelS, start = kernelS - 1)
-    val flt       = ResizeWindow(m3, size = kernelS, start = kernelS/2, stop = -(kernelS/2 - 1))
+    val flt       = ResizeWindow(m3, size = kernelS, start = kernelS - 1)
+//    val flt       = ResizeWindow(m3, size = kernelS, start = kernelS/2, stop = -(kernelS/2 - 1))
 //    i1.poll(Metro(1000), "bla")
 
 //    Progress(Frames(flt) / (2 * frameSize), Metro(width))

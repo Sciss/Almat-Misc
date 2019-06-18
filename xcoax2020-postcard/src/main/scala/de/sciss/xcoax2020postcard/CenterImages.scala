@@ -24,7 +24,7 @@ object CenterImages {
   case class Config(fIn: File, fOut: File)
 
   def main(args: Array[String]): Unit = {
-    for (idx <- 13 to 70) {
+    for (idx <- 1 to 10) {
       val c = Config(
         fIn   = file(f"/data/projects/Almat/events/xcoax2020/postcard/render/out$idx%04d.png"),
         fOut  = file(f"/data/projects/Almat/events/xcoax2020/postcard/centered/outc$idx%04d.png"),
@@ -46,8 +46,8 @@ object CenterImages {
   val hIn       : Int = 2464  // divisible by 32
   val frameSzIn : Int = wIn * hIn
 
-  val wOut      : Int = 3732  // 158 mm at 600 dpi
-  val hOut      : Int = 2716  // 115 mm at 600 dpi
+  val wOut      : Int = 3744  // 3732  // 158 mm at 600 dpi
+  val hOut      : Int = 2720  // 2716  // 115 mm at 600 dpi
   val frameSzOut: Int = wOut * hOut
 
   def getInsets(in: => GE): Insets = {
