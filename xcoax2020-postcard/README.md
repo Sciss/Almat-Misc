@@ -11,3 +11,11 @@ with absolutely no warranties. To contact the author, send an email to `contact 
 ## building
 
 Builds with sbt against Scala 2.13.
+
+## running
+
+The steps are:
+
+- `Main`
+- `CenterImages`
+- `Composition`
