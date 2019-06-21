@@ -24,7 +24,7 @@ object CenterImages {
   case class Config(fIn: File, fOut: File)
 
   def main(args: Array[String]): Unit = {
-    for (idx <- 191 to 215) {
+    for (idx <- 401 to 500) {
       val c = Config(
         fIn   = file(f"/data/projects/Almat/events/xcoax2020/postcard/render/out$idx%04d.png"),
         fOut  = file(f"/data/projects/Almat/events/xcoax2020/postcard/centered/outc$idx%04d.png"),

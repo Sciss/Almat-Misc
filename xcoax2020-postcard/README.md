@@ -16,11 +16,12 @@ Builds with sbt against Scala 2.13.
 
 The steps are:
 
-- `Main`
+- `RunGNG`
 - `CenterImages`
 - `Composition`
-- `RotateSetDPI`
-- `MakePDF`
+- `RotateSetDPI` (requires image magick)
+- `MakePDF` (requires Inkscape)
+- `JoinPDF` (required pdftk)
 
 Image Magick for converting to 2-color png, setting 600 dpi resolution, rotating anti-clockwise:
 

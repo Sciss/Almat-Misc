@@ -1,5 +1,5 @@
 /*
- *  Main.scala
+ *  RunGNG.scala
  *  (xCoAx2020-Postcard)
  *
  *  Copyright (c) 2019 Hanns Holger Rutz. All rights reserved.
@@ -29,7 +29,7 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-object Main {
+object RunGNG {
   case class Config(imgInF        : File    = file("in.png"),
                     imgOutF       : File    = file("out.png"),
                     invert        : Boolean = false,
@@ -212,7 +212,7 @@ object Main {
 //    }
 //    p.parse(args, default).fold(sys.exit(1)) { config =>
 
-    for (idx <- 39 to 250) {
+    for (idx <- 301 to 500) {
       println(s":::::::: idx = $idx ::::::::")
       val config = selected.copy(
         imgInF        = file(f"/data/projects/Almat/events/xcoax2020/postcard/templates/template$idx%04d.png"),
