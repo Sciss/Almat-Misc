@@ -63,23 +63,7 @@ object RunGNG {
     }
   }
 
-  val bla = Config(
-    imgInF      = file("/data/projects/Almat/events/xcoax2020/postcard/WacomTest.png"),
-    imgOutF     = file("/data/projects/Almat/events/xcoax2020/postcard/render/out.png"),
-    invert      = true,
-    gngEpsilon  = 0.05,
-    gngEpsilon2 = 0.05,
-    gngAlpha    = 0.1,
-    gngBeta     = 1.0e-5,
-//    interim     = 0,
-    interimImages = true,
-    widthOut    = 1480 * 4,
-    heightOut   = 1050 * 4,
-    strokeWidth = 2.0   // N.B. this is already scaled by using widthOut and heightOut! 3.4
-  )
-
-  val selected = Config(
-//    imgInF      = file("/data/projects/Almat/events/xcoax2020/postcard/WacomTest.png"),
+  val part1 = Config(
     imgInF      = file("/data/projects/Almat/events/xcoax2020/postcard/WacomTest2.png"),
     imgOutF     = file("/data/projects/Almat/events/xcoax2020/postcard/render/out.png"),
     invert      = true,
@@ -94,131 +78,39 @@ object RunGNG {
     gngMaxSignals  = 10000000,
     gngStepSize = 200, // 500,
     interim     = 50,
-    interimImages = true,
-    widthOut    = 3488, // 3496, // 1480 * 4,
-    rngSeed     = 3, // 0,
-    heightOut   = 2464, // 2480, // 1050 * 4,
+    widthOut    = 3488,
+    heightOut   = 2464,
     strokeWidth = 1.0,
     decay       = 0.99,
+    invertOut   = true,
+  )
+
+  val part2: Config = part1.copy(
+    gngLambda   = 180,
+    gngEdgeAge  = 77,
+    gngEpsilon  = 0.06,
+    gngEpsilon2 = 0.04,
+    gngAlpha    = 0.15, // 0.0,
+    gngBeta     = 2.0e-5,
+    gngUtility  = 5.0,
+    maxNodes    = 600,
+    gngMaxSignals  = 12000000,
+    gngStepSize = 200, // 500,
+    interim     = 50,
+    decay       = 0.98,
     invertOut   = true,
 //    verbose     = true
   )
 
-  //  val examples: Vector[Config] = Vector(ex1, ex2, ex3)
-
   def main(args: Array[String]): Unit = {
-//    val default = Config()
-//    val p = new scopt.OptionParser[Config]("Schwaermen-Catalog-Cover") {
-//      opt[File]('i', "input")
-//        //        .required()
-//        .text (s"Image input file ${default.imgInF})")
-//        .action { (f, c) => c.copy(imgInF = f) }
-//
-//      opt[File]('o', "output")
-//        //        .required()
-//        .text (s"Image output file, should end in '.png' or '.jpg' ${default.imgOutF})")
-//        .action { (f, c) => c.copy(imgOutF = f) }
-//
-//      opt[Unit] ("invert")
-//        .text ("Invert gray scale probabilities.")
-//        .action { (_, c) => c.copy(invert = true) }
-//
-//      opt[Double] ("stroke")
-//        .text (s"Stroke width in pixels (default ${default.strokeWidth})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(strokeWidth = v) }
-//
-//      opt[Int] ("seed")
-//        .text (s"Random number generator seed (default ${default.rngSeed})")
-//        .action { (v, c) => c.copy(rngSeed = v) }
-//
-//      opt[Int] ('n', "max-nodes")
-//        .text ("Maximum number of nodes (zero for threshold based)")
-//        .validate(i => if (i >= 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(maxNodes = v) }
-//
-//      opt[Int] ("decim")
-//        .text (s"Pixel decimation to determine maximum number of nodes (default ${default.maxNodesDecim})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(maxNodesDecim = v) }
-//
-//      opt[Int] ("step")
-//        .text (s"GNG step size (default ${default.gngStepSize})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngStepSize = v) }
-//
-//      opt[Int] ("lambda")
-//        .text (s"GNG lambda parameter (default ${default.gngLambda})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngLambda = v) }
-//
-//      opt[Int] ("edge-age")
-//        .text (s"GNG maximum edge age (default ${default.gngEdgeAge})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngEdgeAge = v) }
-//
-//      opt[Double] ("eps")
-//        .text (s"GNG epsilon parameter (default ${default.gngEpsilon})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngEpsilon = v) }
-//
-//      opt[Double] ("eps2")
-//        .text (s"GNG epsilon 2 parameter (default ${default.gngEpsilon2})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngEpsilon2 = v) }
-//
-//      opt[Double] ("alpha")
-//        .text (s"GNG alpha parameter (default ${default.gngAlpha})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngAlpha = v) }
-//
-//      opt[Double] ("beta")
-//        .text (s"GNG beta parameter (default ${default.gngBeta})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngBeta = v) }
-//
-//      opt[Double] ("utility")
-//        .text (s"GNG-U utility parameter (default ${default.gngUtility})")
-//        .validate(i => if (i > 0) Right(()) else Left("Must be > 0") )
-//        .action { (v, c) => c.copy(gngUtility = v) }
-//
-//      opt[Int] ('t', "interim")
-//        .text (s"Interim file output, every n steps, or zero to turn off (default ${default.interim})")
-//        .validate(i => if (i >= 0) Right(()) else Left("Must be >= 0") )
-//        .action { (v, c) => c.copy(interim = v) }
-//
-//      opt[Unit] ("interim-images")
-//        .text ("Generate images for interim files.")
-//        .action { (_, c) => c.copy(interimImages = true) }
-//
-//      opt[Int] ("ex")
-//        .text (s"Use example <n> parameters (1 to ${examples.size}")
-//        .validate(i => if (i >= 1 && i <= examples.size) Right(()) else Left(s"Must be >= 1 and <= ${examples.size}") )
-//        .action { (i, _) => examples(i - 1) }
-//
-//      opt[Unit] ("selected")
-//        .text ("Use the parameters selected for the catalog cover.")
-//        .action { (_, _) => selected }
-//
-//      opt[Int] ('w', "width")
-//        .text (s"Rendering output width in pixels, or zero to match input.")
-//        .validate(i => if (i >= 0) Right(()) else Left("Must be >= 0") )
-//        .action { (v, c) => c.copy(widthOut = v) }
-//
-//      opt[Int] ('h', "height")
-//        .text (s"Rendering output height in pixels, or zero to match input.")
-//        .validate(i => if (i >= 0) Right(()) else Left("Must be >= 0") )
-//        .action { (v, c) => c.copy(heightOut = v) }
-//    }
-//    p.parse(args, default).fold(sys.exit(1)) { config =>
-
-    for (idx <- 301 to 500) {
+    for (idx <- 783 to 1000) {
       println(s":::::::: idx = $idx ::::::::")
-      val config = selected.copy(
-        imgInF        = file(f"/data/projects/Almat/events/xcoax2020/postcard/templates/template$idx%04d.png"),
+      val base  = if (idx <= 500) part1 else part2
+      val tIdx  = ((idx - 1) % 500) + 1
+      val config = base.copy(
+        imgInF        = file(f"/data/projects/Almat/events/xcoax2020/postcard/templates/template$tIdx%04d.png"),
         imgOutF       = file(f"/data/projects/Almat/events/xcoax2020/postcard/render/out$idx%04d.png"),
-        rngSeed       = idx,
-        interimImages = false
+        rngSeed       = idx
       )
       run(config)
     }

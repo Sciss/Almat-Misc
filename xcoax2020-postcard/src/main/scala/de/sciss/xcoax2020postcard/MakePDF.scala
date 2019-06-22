@@ -60,7 +60,7 @@ object MakePDF {
     }
     require (nameIndices.size >= 2)
 
-    for (idx <- 401 to 500) {
+    for (idx <- 751 to 1000) {
       val nameNew = tempName.format(idx)
       val svgNew  = nameIndices.foldLeft(svgTemp) { case (svgT, i) =>
         svgT.patch(i, nameNew, nameOld.length)

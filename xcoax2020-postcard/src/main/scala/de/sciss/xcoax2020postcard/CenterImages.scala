@@ -24,13 +24,15 @@ object CenterImages {
   case class Config(fIn: File, fOut: File)
 
   def main(args: Array[String]): Unit = {
-    for (idx <- 401 to 500) {
+    for (idx <- 901 to 1000) {
       val c = Config(
         fIn   = file(f"/data/projects/Almat/events/xcoax2020/postcard/render/out$idx%04d.png"),
         fOut  = file(f"/data/projects/Almat/events/xcoax2020/postcard/centered/outc$idx%04d.png"),
       )
 
-      require (c.fIn.exists() && !c.fOut.exists())
+      import c._
+      require ( fIn .exists(), fIn  .path)
+      require (!fOut.exists(), fOut .path)
 
       println(s":::::::: idx $idx ::::::::")
       val fut = run(c)

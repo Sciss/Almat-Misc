@@ -20,7 +20,7 @@ object RotateSetDPI {
     val tempIn  = file("/data/projects/Almat/events/xcoax2020/postcard/composed/outcc%04d.png")
     val tempOut = file("/data/projects/Almat/events/xcoax2020/postcard/rotated/outccr%04d.png")
 
-    for (idx <- 401 to 500) {
+    for (idx <- 751 to 1000) {
       val fIn     = formatTemplate(tempIn , idx)
       val fOut    = formatTemplate(tempOut, idx)
       require (fIn.exists() && !fOut.exists())

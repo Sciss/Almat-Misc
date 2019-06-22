@@ -52,21 +52,37 @@ thresh: 84 // 143
 
 object Composition {
   case class Config(
-                     fIn: File, fOut: File, f1N: Double = 0.02, rangeFix: Double = 5.0e-9
+                     fIn: File, fOut: File, f1N: Double = 0.02, rangeFix: Double = 5.0e-9, rotateFilter: Boolean = false
                    )
+
+  val part1 = Config(
+    fIn   = file("in"),
+    fOut  = file("out")
+  )
+
+  val part2: Config = part1.copy(
+    f1N           = 0.022,
+    rangeFix      = 4.0e-9,
+    rotateFilter  = true
+  )
 
   def any2stringadd: Any = ()
 
   def main(args: Array[String]): Unit = {
-    for (idx <- 401 to 500) {
+    for (idx <- 901 to 1000) {
       val tempIn  = file("/data/projects/Almat/events/xcoax2020/postcard/centered/outc%04d.png")
       val tempOut = file("/data/projects/Almat/events/xcoax2020/postcard/composed/outcc%04d.png")
       val fIn     = formatTemplate(tempIn , idx)
       val fOut    = formatTemplate(tempOut, idx)
-      require (fIn.exists() && !fOut.exists())
+      require ( fIn .exists(), fIn  .path)
+      require (!fOut.exists(), fOut .path)
 
       println(s":::::::: compose $idx ::::::::")
-      val fut = run(Config(fIn = fIn, fOut = fOut, f1N = 0.02))
+      val base  = if (idx <= 500) part1 else part2
+      val cfg   = base.copy(
+        fIn = fIn, fOut = fOut
+      )
+      val fut = run(cfg)
       Await.result(fut, Duration.Inf)
     }
   }
@@ -104,17 +120,33 @@ object Composition {
         val mixE = AffineTransform2D.translate(mix, widthIn = width, heightIn = height, widthOut = fftSize, heightOut = fftSize,
           tx = 0, ty = 0, zeroCrossings = 0)
 
-        //        val f1N = 0.001
+        val fftSizeSq = fftSize * fftSize
+
         def sinc10 = GenWindow(fftSize /* width */, shape = GenWindow.Sinc, param = 0.5) * 0.5 -
           GenWindow(fftSize /* width */, shape = GenWindow.Sinc, param = f1N) * f1N
 
         def sinc11: GE = sinc10 * GenWindow(fftSize, shape = GenWindow.Blackman)
 
-        def sinc1: GE = RotateWindow(sinc11, fftSize, fftSize/2)
+        def sinc12: GE = RotateWindow(sinc11, fftSize, fftSize/2)
 
-        val sinc2 = RepeatWindow(sinc1, 1, fftSize /* width */)
-        val sinc  = (sinc1 * sinc2).take(frameSize)
-        val mixF  = Real2FFT(mixE , rows = fftSize, columns = fftSize)
+        val (sinc1, sinc2) = (sinc12, RepeatWindow(sinc12, 1, fftSize /* width */))
+        val sincM = sinc1 * sinc2
+
+        val sinc = if (rotateFilter) {
+          val d1 = fftSize - width // /2
+          val t0 = ResizeWindow(sincM , fftSize, stop = -d1)  // "truncate" horizontally
+//          val t0 = ResizeWindow(sincM , fftSize, start = d1, stop = -d1)  // "truncate" horizontally
+//          val d2 = d1 + Impulse(0.25) * 2 /* glitch */
+          val d2 = d1 + Metro(2) // * 2 /* glitch */
+//          val d2 = d1 + LFSaw(0.5) * 1.1 // 1.0/height) * 1.5
+          val t1 = ResizeWindow(t0    , fftSize - d2, stop = d1)
+//          val t1 = ResizeWindow(t0    , fftSize - (d2 + d1), start = -d1, stop = d1)
+          t1.take(fftSizeSq)
+        } else {
+          sincM.take(frameSize) // "truncate" vertically
+        }
+
+        val mixF  = Real2FFT(mixE, rows = fftSize, columns = fftSize)
         val sincF = Real2FFT(sinc, rows = fftSize, columns = fftSize)
         val cv    = mixF.complex * sincF
         val ret   = Real2IFFT(cv, rows = fftSize, columns = fftSize)

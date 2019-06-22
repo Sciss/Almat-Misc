@@ -20,7 +20,7 @@ object JoinPDF {
     val workDir   = file("/data/projects/Almat/events/xcoax2020/postcard/back-pdf")
     val tempName  = "xcoax2020-back%04d.pdf"
     val fOut      = workDir.parent / "xcoax2020-back.pdf"
-    val indices   = 1 to 500
+    val indices   = 1 to 1000
     val names     = indices.map(tempName.format(_))
 
     names.foreach { name =>
