@@ -9,10 +9,10 @@ a collaboration between the European Master Module in Art, Science and Technolog
 project Algorithms that Matter. This project _generates_ a workspace for [Mellite](https://sciss.de/mellite), 
 containing a number of experimental _FScape_ modules available to the workshop.
 
-This software repository is (C)opyright 2019 by Hanns Holger Rutz. All rights reserved. This code is released 
+This software repository is (C)opyright 2019–2020 by Hanns Holger Rutz. All rights reserved. This code is released 
 under the [GNU Affero General Public License](https://git.iem.at/sciss/SpaceMaterialDetail/blob/master/LICENSE) v3+ 
 and comes with absolutely no warranties.
-To contact the author, send an email to `contact at sciss.de`.
+To contact the author, send an e-mail to `contact at sciss.de`.
 
 This code base _produces a Mellite workspace_ with various FScape modules. These modules are made available under
 the the [CC Attribution-ShareAlike 4.0 Intl](https://git.iem.at/sciss/SpaceMaterialDetail/blob/master/LICENSE-workspace) license.
@@ -24,4 +24,4 @@ You are thus free to use any generated materials from the modules in your artwor
 
 ## building
 
-Builds with sbt against Scala 2.12.
+Builds with sbt against Scala 2.13.

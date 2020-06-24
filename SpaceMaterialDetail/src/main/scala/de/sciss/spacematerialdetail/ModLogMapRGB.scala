@@ -119,16 +119,16 @@ object ModLogMapRGB extends Module {
   }
 
   def ui[S <: Sys[S]]()(implicit tx: S#Tx): Widget[S] = {
-    import de.sciss.lucre.expr.ExOps._
+    import de.sciss.lucre.expr.ExImport._
     import de.sciss.lucre.expr.graph._
     import de.sciss.lucre.swing.graph._
     val widget = Widget[S]()
     import de.sciss.synth.proc.MacroImplicits._
     widget.setGraph {
-      // version 06-Apr-2019
+      // version 24-Jun-2020
       val r = Runner("run")
       val m = r.messages
-      m.changed.filter(m.nonEmpty) ---> Println(m.mkString("\n"))
+      m.changed.filter(m.nonEmpty) ---> PrintLn(m.mkString("\n"))
 
       def mkLabel(text: String) = {
         val l = Label(text)
@@ -225,7 +225,7 @@ object ModLogMapRGB extends Module {
       val pb        = ProgressBar()
       ggRender.clicked ---> r.run
       ggCancel.clicked ---> r.stop
-      val stopped = r.state sig_== 0
+      val stopped = (r.state sig_== 0) || (r.state sig_== 4)
       ggRender.enabled = stopped
       ggCancel.enabled = !stopped
       pb.value = (r.progress * 100).toInt

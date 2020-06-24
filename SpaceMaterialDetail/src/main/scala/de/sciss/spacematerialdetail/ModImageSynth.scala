@@ -115,16 +115,16 @@ object ModImageSynth extends Module {
   }
 
   def ui[S <: Sys[S]]()(implicit tx: S#Tx): Widget[S] = {
-    import de.sciss.lucre.expr.ExOps._
+    import de.sciss.lucre.expr.ExImport._
     import de.sciss.lucre.expr.graph._
     import de.sciss.lucre.swing.graph._
     val w = Widget[S]()
     import de.sciss.synth.proc.MacroImplicits._
     w.setGraph {
-      // version 02-Apr-2019
+      // version 24-Jun-2020
       val r = Runner("run")
       val m = r.messages
-      m.changed.filter(m.nonEmpty) ---> Println(m.mkString("\n"))
+      m.changed.filter(m.nonEmpty) ---> PrintLn(m.mkString("\n"))
 
       val in = ImageFileIn()
       in.value <--> Artifact("run:in")
@@ -251,7 +251,7 @@ object ModImageSynth extends Module {
       val pb        = ProgressBar()
       ggRender.clicked ---> r.run
       ggCancel.clicked ---> r.stop
-      val stopped = r.state sig_== 0
+      val stopped = (r.state sig_== 0) || (r.state sig_== 4)
       ggRender.enabled = stopped
       ggCancel.enabled = !stopped
       pb.value = (r.progress * 100).toInt
