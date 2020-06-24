@@ -1,6 +1,6 @@
 # Space Material Detail
 
-[![Build Status](https://travis-ci.org/Sciss/SpaceMaterialDetail.svg?branch=master)](https://travis-ci.org/Sciss/SpaceMaterialDetail)
+[![Build Status](https://travis-ci.org/Sciss/SpaceMaterialDetail.svg?branch=main)](https://travis-ci.org/Sciss/SpaceMaterialDetail)
 
 ## statement
 
@@ -10,12 +10,12 @@ project Algorithms that Matter. This project _generates_ a workspace for [Mellit
 containing a number of experimental _FScape_ modules available to the workshop.
 
 This software repository is (C)opyright 2019–2020 by Hanns Holger Rutz. All rights reserved. This code is released 
-under the [GNU Affero General Public License](https://git.iem.at/sciss/SpaceMaterialDetail/blob/master/LICENSE) v3+ 
+under the [GNU Affero General Public License](https://git.iem.at/sciss/SpaceMaterialDetail/blob/main/LICENSE) v3+ 
 and comes with absolutely no warranties.
 To contact the author, send an e-mail to `contact at sciss.de`.
 
 This code base _produces a Mellite workspace_ with various FScape modules. These modules are made available under
-the the [CC Attribution-ShareAlike 4.0 Intl](https://git.iem.at/sciss/SpaceMaterialDetail/blob/master/LICENSE-workspace) license.
+the the [CC Attribution-ShareAlike 4.0 Intl](https://git.iem.at/sciss/SpaceMaterialDetail/blob/main/LICENSE-workspace) license.
 This basically means we can derive your own FScape modules from the provided code, but if you share them, follow the
 rules of the license (attribution and sharing under the same conditions.)
 
