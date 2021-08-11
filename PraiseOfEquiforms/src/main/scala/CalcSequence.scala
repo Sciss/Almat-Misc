@@ -22,14 +22,15 @@ object CalcSequence:
     println(s"Maximum similarity is $maxSim")
 
     val cost = Array.ofDim[Double](numPar, numPar)
-    for (vi <- 0 until numPar) {
-      for (vj <- (vi + 1) until numPar) {
-        val vk = vj - (vi + 1)
-        val c = maxSim - m(vi)(vk)
-        cost(vi)(vj) = c
-        cost(vj)(vi) = c
-      }
-    }
+    for
+      vi <- 0        until numPar
+      vj <- (vi + 1) until numPar
+    do
+      val vk  = vj - (vi + 1)
+      val c   = maxSim - m(vi)(vk)
+      cost(vi)(vj) = c
+      cost(vj)(vi) = c
+
     val rnd     = new util.Random(0)
     val N       = 1000
     val tours   = Seq.tabulate(N) { x =>
