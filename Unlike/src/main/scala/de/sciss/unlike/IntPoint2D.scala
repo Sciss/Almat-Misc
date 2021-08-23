@@ -2,7 +2,7 @@
  *  IntPoint2D.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,8 +13,7 @@
 
 package de.sciss.unlike
 
-import de.sciss.play.json.AutoFormat
-import play.api.libs.json.Format
+import play.api.libs.json.{Format, Json}
 
 trait IntPoint2DLike {
   def x: Int
@@ -71,7 +70,7 @@ trait IntPoint2DLike {
 }
 
 object IntPoint2D {
-  implicit val format: Format[IntPoint2D] = AutoFormat[IntPoint2D]
+  implicit val format: Format[IntPoint2D] = Json.format[IntPoint2D] // AutoFormat[IntPoint2D]
 }
 final case class IntPoint2D(x: Int, y: Int) extends IntPoint2DLike {
   def +(p: IntPoint2D) = IntPoint2D(x + p.x, y + p.y)

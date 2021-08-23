@@ -2,7 +2,7 @@
  *  MoorMotionStudy1.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -16,7 +16,8 @@ package de.sciss.unlike
 import de.sciss.file._
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Future, Await, blocking}
+import scala.concurrent.{Await, Future, blocking}
+import scala.util.Failure
 
 object MoorMotionStudy1 extends App {
   val base        = userHome / "Documents" / "projects" / "Unlike"
@@ -48,8 +49,9 @@ object MoorMotionStudy1 extends App {
       frames = (startFrame to endFrame) zip prod /* , missing = RenderVideoMotion.Missing.Truncate */)
     val p = RenderVideoMotion(renCfg)
     println("Render...")
-    p.onFailure {
-      case e => e.printStackTrace()
+    p.onComplete {
+      case Failure(e) => e.printStackTrace()
+      case _ =>
     }
     runAndMonitor(p, exit = true, printResult = false)
 

@@ -2,7 +2,7 @@
  *  PerspectiveTest.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -14,7 +14,9 @@
 package de.sciss.unlike
 
 import de.sciss.file._
-import de.sciss.processor._
+import de.sciss.processor.Ops._
+
+import scala.util.{Failure, Success}
 
 object PerspectiveTest extends App {
   // import Unlike.mkFIn
@@ -55,11 +57,15 @@ object PerspectiveTest extends App {
   println("_" * 33)
   proc.monitor()
   proc.start()
-  proc.onSuccess {
-    case _ =>
+  proc.onComplete {
+    case Success(_) =>
       println(new java.util.Date)
       Thread.sleep(200)
       sys.exit()
+
+    case Failure(e) =>
+      e.printStackTrace()
+      sys.exit(1)
   }
 
   def mkBird(frame: Int): File = file("_creation") / "bird" / f"$frame%04d.jpg"

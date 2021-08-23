@@ -2,7 +2,7 @@
  *  GlobalConfig.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,11 +13,10 @@
 
 package de.sciss.unlike
 
-import de.sciss.play.json.AutoFormat
-import play.api.libs.json.Format
+import play.api.libs.json.{Format, Json}
 
 object GlobalConfig {
-  implicit val format: Format[GlobalConfig] = AutoFormat[GlobalConfig]
+  implicit val format: Format[GlobalConfig] = Json.format[GlobalConfig] // AutoFormat[GlobalConfig]
 }
 case class GlobalConfig(width: Int = 7360, height: Int = 4912, noise: Int = 0)
 

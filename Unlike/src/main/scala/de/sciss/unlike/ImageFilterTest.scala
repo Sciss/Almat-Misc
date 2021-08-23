@@ -2,7 +2,7 @@
  *  ImageFilterTest.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,10 +13,10 @@
 
 package de.sciss.unlike
 
-import javax.imageio.ImageIO
-
-import com.jhlabs.image.{NoiseFilter, GammaFilter}
+import com.jhlabs.image.{GammaFilter, NoiseFilter}
 import de.sciss.file._
+
+import javax.imageio.ImageIO
 
 object ImageFilterTest extends App {
   val base      = userHome / "Documents" / "projects" / "Unlike"

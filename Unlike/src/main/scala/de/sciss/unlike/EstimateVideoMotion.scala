@@ -2,7 +2,7 @@
  *  EstimateVideoMotion.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -17,7 +17,7 @@ import de.sciss.file._
 import de.sciss.kollflitz
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
-import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
+import de.sciss.transform4s.fft.DoubleFFT_2D
 
 object EstimateVideoMotion extends ProcessorFactory {
   import PhaseCorrelation.{Product => Frame}

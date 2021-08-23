@@ -2,7 +2,7 @@
  *  package.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,18 +13,19 @@
 
 package de.sciss
 
-import java.awt.image.BufferedImage
-import javax.swing.UIManager
-
 import de.sciss.desktop.OptionPane
+import de.sciss.processor.Ops._
 import de.sciss.processor.{Processor, ProcessorLike}
 import de.sciss.swingplus.CloseOperation
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import java.awt.image.BufferedImage
+import javax.swing.UIManager
+import scala.concurrent.{ExecutionContext, Future}
 import scala.swing.Swing._
 import scala.swing.event.ButtonClicked
 import scala.swing.{Button, Frame, ProgressBar, Swing}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 package object unlike {
   type Vec[+A]  = scala.collection.immutable.IndexedSeq[A]
@@ -42,7 +43,7 @@ package object unlike {
     sync
   }
 
-  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
+  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit executionContext: ExecutionContext): Unit = {
     val sync = mkBlockTread()
     p.onComplete {
       _ => sync.synchronized(sync.notify())
@@ -54,10 +55,12 @@ package object unlike {
     waitForProcessor(p)
     println("_" * 33)
     p.monitor(printResult = printResult)
-    if (exit) p.onSuccess {
-      case _ =>
+    if (exit) p.onComplete {
+      case Success(_) =>
         Thread.sleep(200)
         sys.exit()
+
+      case _ =>
     }
     p.start()
   }
@@ -85,9 +88,10 @@ package object unlike {
         p.abort()
     }
     tail.onComplete(_ => onEDT(dlg.dispose()))
-    tail.onFailure {
-      case Processor.Aborted() =>
-      case ex => ex.printStackTrace()
+    tail.onComplete {
+      case Failure(Processor.Aborted()) =>
+      case Failure(ex) => ex.printStackTrace()
+      case _ =>
     }
     p.addListener {
       case prog @ Processor.Progress(_, _) => onEDT(ggProg.value = prog.toInt)
@@ -96,9 +100,10 @@ package object unlike {
   }
 
   def startAndReportProcessor[A](p: Processor[A] with Processor.Prepared): Processor[A] = {
-    p.onFailure {
-      case Processor.Aborted() =>
-      case ex => ex.printStackTrace()
+    p.onComplete {
+      case Failure(Processor.Aborted()) =>
+      case Failure(ex) => ex.printStackTrace()
+      case _ =>
     }
     p.start()
     p
@@ -107,7 +112,7 @@ package object unlike {
   def cropImage(src: BufferedImage, x: Int, y: Int, width: Int, height: Int): BufferedImage =
     src.getSubimage(x, y, width, height)
 
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
+  implicit val executionContext: ExecutionContext = ExecutionContext.Implicits.global
 
   implicit class ImageOps(private val i: Image) extends AnyVal {
     def plot(zoom: Double = 1.0, mul: Double = 1.0, add: Double = 0.0, invert: Boolean = false,

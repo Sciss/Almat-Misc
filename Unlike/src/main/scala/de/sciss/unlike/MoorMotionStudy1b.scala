@@ -2,7 +2,7 @@
  *  MoorMotionStudy1b.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -19,11 +19,12 @@ import de.sciss.unlike.PhaseCorrelation.{Product => Frame}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
+import scala.util.Failure
 
 object MoorMotionStudy1b {
   val moorBase: File = userHome / "Documents" / "projects" / "Unlike"
 
-  val moorStudyConfig = Config(
+  val moorStudyConfig: Config = Config(
     inputTemp   = moorBase / "moor_8024" / "moor_8024-%05d.jpg",
     jsonDir     = moorBase / "moor_8024_json",
     outputTemp  = moorBase / "moor_8024_out" / "moor_8024-out-%05d.jpg",
@@ -200,8 +201,9 @@ object MoorMotionStudy1b {
         frames = frames, filtersOut = filters, verbose = verbose /* , missing = RenderVideoMotion.Missing.Truncate */)
       val p = RenderVideoMotion(renCfg)
       println("Render...")
-      p.onFailure {
-        case e => e.printStackTrace()
+      p.onComplete {
+        case Failure(e) => e.printStackTrace()
+        case _ =>
       }
       runAndMonitor(p, exit = true, printResult = false)
     }

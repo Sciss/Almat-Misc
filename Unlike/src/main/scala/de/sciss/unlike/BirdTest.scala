@@ -2,7 +2,7 @@
  *  BirdTest.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,18 +13,19 @@
 
 package de.sciss.unlike
 
-import java.awt.{Color, RenderingHints}
+import de.sciss.file._
+import de.sciss.processor.Ops._
+import de.sciss.processor.Processor
+import de.sciss.{kollflitz, numbers}
+
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
+import java.awt.{Color, RenderingHints}
 import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
-
-import de.sciss.file._
-import de.sciss.{numbers, kollflitz}
-import de.sciss.processor.Processor
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, blocking}
+import scala.util.Success
 
 object BirdTest extends App {
   val startFrame  =   60
@@ -61,12 +62,12 @@ object BirdTest extends App {
 
     val tx1     = tx0.zipWithIndex.map { case (in, idx) =>
       import numbers.Implicits._
-      val off = totTx * idx.linlin(0, numFramesM, 0, -1)
+      val off = totTx * idx.linLin(0, numFramesM, 0, -1)
       in /* - meanTx */ + off
     }
     val ty1     = ty0.zipWithIndex.map { case (in, idx) =>
       import numbers.Implicits._
-      val off = totTy * idx.linlin(0, numFramesM, 0, -1)
+      val off = totTy * idx.linLin(0, numFramesM, 0, -1)
       in /* - meanTy */ + off
     }
 
@@ -116,10 +117,12 @@ object BirdTest extends App {
   waitForProcessor(pAll)
   println("_" * 33)
   pAll.monitor()
-  pAll.onSuccess {
-    case _ =>
+  pAll.onComplete {
+    case Success(_) =>
       Thread.sleep(200)
       sys.exit()
+
+    case _ =>
   }
 
   def mkBirdIn (frame: Int): File = file("_creation") / "bird"     / f"$frame%04d.jpg"

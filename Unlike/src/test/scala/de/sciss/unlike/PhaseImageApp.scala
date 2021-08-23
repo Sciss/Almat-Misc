@@ -24,7 +24,7 @@ object PhaseImageApp {
 //    val buf       = matrix.toAwt(mul = 1.0 / (max - min), add = -min)
     for (i <- data.indices) {
       import numbers.Implicits._
-      data(i) = data(i) /* .clip(0, max) */ .linlin(min, max, 0, 1).pow(1.0/2)
+      data(i) = data(i) /* .clip(0, max) */ .linLin(min, max, 0, 1).pow(1.0/2)
     }
     val buf       = matrix.toAwt(mul = 1.0, add = 0)
     val w         = buf.getWidth

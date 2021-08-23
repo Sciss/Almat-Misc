@@ -2,7 +2,7 @@
  *  Image.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,12 +13,12 @@
 
 package de.sciss.unlike
 
+import de.sciss.file._
+import de.sciss.numbers
+
 import java.awt.Color
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
-
-import de.sciss.file._
-import de.sciss.numbers
 
 /** A simple image representation for gray scale, using a one dimensional array.
   * Data is sorted with `pixel(x, y) == data[y * width + x]`

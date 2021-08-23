@@ -2,7 +2,7 @@
  *  JsonUtil.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,10 +13,10 @@
 
 package de.sciss.unlike
 
-import java.io.{FileInputStream, FileOutputStream}
-
 import de.sciss.file._
 import play.api.libs.json.{Json, Reads, Writes}
+
+import java.io.{FileInputStream, FileOutputStream}
 
 object JsonUtil {
   def write[A](value: A, f: File)(implicit format: Writes[A]): Unit = {

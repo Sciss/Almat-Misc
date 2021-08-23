@@ -2,7 +2,7 @@
  *  RCThumbnail.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,19 +13,19 @@
 
 package de.sciss.unlike
 
-import java.awt.{Color, RenderingHints}
+import de.sciss.file._
+
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
+import java.awt.{Color, RenderingHints}
 import javax.imageio.ImageIO
-
-import de.sciss.file._
 
 object RCThumbnail {
   val moorConfig: MoorMotionStudy1b.Config = MoorMotionStudy1b.moorStudyConfig
 
 //  import MoorMotionStudy1b.{base, outputTemplate, startFrame, endFrame}
   import MoorMotionStudy1b.{moorBase => base}
-  import moorConfig.{outputTemp => outputTemplate, startFrame, endFrame}
+  import moorConfig.{endFrame, startFrame, outputTemp => outputTemplate}
 
   def main(args: Array[String]): Unit = run()
 

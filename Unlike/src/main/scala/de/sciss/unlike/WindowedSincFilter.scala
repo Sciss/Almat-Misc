@@ -2,7 +2,7 @@
  *  WindowedSincFilter.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -33,7 +33,7 @@ object WindowedSincFilter {
     val normFactor	= 1.0 / (halfWinSize - 1)
 
     // ideal lpf = infinite sinc-function; create truncated version
-    impResp(0) = smpRate.toDouble
+    impResp(0) = smpRate // .toDouble
     var i = 1
     while (i < halfWinSize) {
       val d = Pi * i / dNum

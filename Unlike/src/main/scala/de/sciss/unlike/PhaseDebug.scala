@@ -2,7 +2,7 @@
  *  PhaseDebug.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,19 +13,18 @@
 
 package de.sciss.unlike
 
-import java.awt.RenderingHints
-import java.awt.geom.AffineTransform
-import javax.imageio.ImageIO
-
 import de.sciss.file._
 import de.sciss.guiflitz.AutoView
 import de.sciss.swingplus.CloseOperation
 import de.sciss.swingplus.Implicits._
 import de.sciss.unlike.PhaseCorrelation.{Product => Frame}
 
-import scala.concurrent.{blocking, Future}
+import java.awt.RenderingHints
+import java.awt.geom.AffineTransform
+import javax.imageio.ImageIO
+import scala.concurrent.{Future, blocking}
 import scala.swing.Swing._
-import scala.swing.{Frame => SFrame, Button, BorderPanel, Component, Graphics2D, Swing}
+import scala.swing.{BorderPanel, Button, Component, Graphics2D, Swing, Frame => SFrame}
 
 object PhaseDebug {
   val fBase    : File = userHome / "Documents" / "projects" / "Unlike"

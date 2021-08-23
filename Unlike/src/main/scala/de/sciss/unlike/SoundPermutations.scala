@@ -2,7 +2,7 @@
  *  SoundPermutations.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -16,10 +16,12 @@ package de.sciss.unlike
 import de.sciss.file._
 import de.sciss.fscape.FScapeJobs
 import de.sciss.fscape.FScapeJobs.{Gain, OutputSpec}
+import de.sciss.processor.Ops._
 import de.sciss.unlike.Morass.Config
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Future, Await, Promise}
+import scala.concurrent.{Await, Future, Promise}
+import scala.util.{Failure, Success}
 
 object SoundPermutations extends App {
   val inputs    = (userHome / "Music" / "work").children(f => f.name.startsWith("mentasm-") && f.ext == "aif")
@@ -53,8 +55,15 @@ object SoundPermutations extends App {
 //      }
     }
 
-    fut.onSuccess  { case _ => println("All done.") }
-    fut.onComplete {      _ => sys.exit()           }
+    fut.onComplete  {
+      case Success(_) =>
+        println("All done.")
+        sys.exit()
+
+      case Failure(e) =>
+        e.printStackTrace()
+        sys.exit(1)
+    }
   }
 
   def run(inA: File, inB: File): Unit = {

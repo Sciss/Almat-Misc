@@ -2,7 +2,7 @@
  *  Resample.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -15,9 +15,9 @@ package de.sciss.unlike
 
 object Resample {
   object Quality {
-    val Low     = Quality(0.7 , 6.5,  5)
-    val Medium  = Quality(0.8 , 7.0,  9)
-    val High    = Quality(0.86, 7.5, 15)
+    val Low   : Quality = Quality(0.7 , 6.5,  5)
+    val Medium: Quality = Quality(0.8 , 7.0,  9)
+    val High  : Quality = Quality(0.86, 7.5, 15)
   }
 
   final case class Quality(rollOff: Double, kaiserBeta: Double, zeroCrossings: Int)

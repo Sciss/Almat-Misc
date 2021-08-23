@@ -2,7 +2,7 @@
  *  AdjustImages.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -12,12 +12,6 @@
  */
 
 package de.sciss.unlike
-
-import java.awt.image.BufferedImage
-import java.awt.{Color, Paint, TexturePaint}
-import java.io.{FileInputStream, FileOutputStream}
-import javax.imageio.ImageIO
-import javax.swing.KeyStroke
 
 import com.jhlabs.image.{NoiseFilter, PerspectiveFilter}
 import com.mortennobel.imagescaling.ResampleOp
@@ -29,6 +23,11 @@ import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.swingplus.Implicits._
 import de.sciss.swingplus.{CloseOperation, ComboBox, ListView}
 
+import java.awt.image.BufferedImage
+import java.awt.{Color, Paint, TexturePaint}
+import java.io.{FileInputStream, FileOutputStream}
+import javax.imageio.ImageIO
+import javax.swing.KeyStroke
 import scala.collection.mutable
 import scala.concurrent.blocking
 import scala.swing.Swing._

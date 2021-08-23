@@ -2,7 +2,7 @@
  *  Morass.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,12 +13,12 @@
 
 package de.sciss.unlike
 
+import de.sciss.audiofile.{AudioFile, AudioFileSpec, AudioFileType, SampleFormat}
 import de.sciss.file._
-import de.sciss.numbers
+import de.sciss.numbers.Implicits._
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
-import de.sciss.synth.io.{SampleFormat, AudioFileType, AudioFile, AudioFileSpec}
-import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D
+import de.sciss.transform4s.fft.DoubleFFT_1D
 
 import scala.concurrent.blocking
 
@@ -80,9 +80,9 @@ object Morass extends ProcessorFactory {
         val bufOutSz      = bufInSz + winSize
         val bufInSzM      = bufInSz  - stepSize
         val bufOutSzM     = bufOutSz - stepSize
-        val bufInA        = Array.ofDim[Float](numCh, bufInSz )
-        val bufInB        = Array.ofDim[Float](numCh, bufInSz )
-        val bufOut        = Array.ofDim[Float](numCh, bufOutSz)
+        val bufInA        = Array.ofDim[Double](numCh, bufInSz )
+        val bufInB        = Array.ofDim[Double](numCh, bufInSz )
+        val bufOut        = Array.ofDim[Double](numCh, bufOutSz)
         val winAnaIn      = analyzeWinType    .create(inputWinSize   )
         val winAnaTemp    = analyzeWinType    .create(templateWinSize)
         val winSynth      = if (synthesizeWinAmt == 1.0) {
@@ -105,14 +105,14 @@ object Morass extends ProcessorFactory {
           WindowFunction.Rectangle.fill(arr, lenH, inputWinSize - len)
           arr
         }
-        val fft           = new DoubleFFT_1D(winSize)
+        val fft           = DoubleFFT_1D(winSize)
         val fftBufA       = new Array[Double](winSize)
         val fftBufB       = new Array[Double](winSize)
 
         var framesRead    = 0L
         var framesWritten = 0L
 
-        def prepareFFT(in: Array[Float], out: Array[Double], win: Array[Double]): Unit = {
+        def prepareFFT(in: Array[Double], out: Array[Double], win: Array[Double]): Unit = {
           var i = 0
           while (i < win.length) {
             out(i) = in(i) * win(i)
@@ -171,9 +171,7 @@ object Morass extends ProcessorFactory {
 
               // handle overlap out
               System.arraycopy(chOut, stepSize, chOut, 0, bufOutSzM)
-
-              import numbers.Implicits._
-              val amp = ampModulation.linlin(0, 1, 1.0, prod.peak)
+              val amp = ampModulation.linLin(0, 1, 1.0, prod.peak)
               i = if (shiftX < 0) -shiftX else 0
               while (i < winSynth.length) {
                 chOut(i + shiftX) += (chInA(i) * amp * winSynth(i)).toFloat

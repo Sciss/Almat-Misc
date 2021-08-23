@@ -2,7 +2,7 @@
  *  Unlike.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -18,6 +18,7 @@ import de.sciss.unlike.PhaseCorrelation.{Product => Frame}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
+import scala.util.Failure
 
 object Unlike extends App {
   lazy val mode             = "VIDEO"   // either "WRITE" or "ANALYZE" or "BOTH", or "VIDEO"
@@ -78,8 +79,9 @@ object Unlike extends App {
       downSample = 2.0)
     val p = RenderVideoMotion(renCfg)
     println("Render...")
-    p.onFailure {
-      case e => e.printStackTrace()
+    p.onComplete {
+      case Failure(e) => e.printStackTrace()
+      case _ =>
     }
     runAndMonitor(p, exit = true, printResult = false)
   }

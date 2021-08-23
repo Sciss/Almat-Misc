@@ -2,7 +2,7 @@
  *  ImageView.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -15,8 +15,7 @@ package de.sciss.unlike
 
 import java.awt.EventQueue
 import java.awt.image.BufferedImage
-
-import scala.swing.{ScrollPane, Dimension, Graphics2D, Component, Swing}
+import scala.swing.{Component, Dimension, Graphics2D, ScrollPane, Swing}
 
 object ImageView {
   def apply(i: Image): ImageView = new Impl(i)

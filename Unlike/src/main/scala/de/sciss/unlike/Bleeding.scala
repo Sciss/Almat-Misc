@@ -2,7 +2,7 @@
  *  Bleeding.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,16 +13,16 @@
 
 package de.sciss.unlike
 
-import java.awt.image.BufferedImage
-
 import com.jhlabs.image.{AbstractBufferedImageOp, EmbossFilter}
 import de.sciss.file._
 import de.sciss.numbers
 import de.sciss.unlike.PhaseCorrelation.{Product => Frame}
 
+import java.awt.image.BufferedImage
 import scala.annotation.switch
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, blocking}
+import scala.util.Failure
 
 object Bleeding extends App {
   lazy val mode             = "WRITE"   // either "WRITE" or "ANALYZE" or "BOTH", or "VIDEO"
@@ -86,8 +86,9 @@ object Bleeding extends App {
       downSample = 1.0)
     val p = RenderVideoMotion(renCfg)
     println("Render...")
-    p.onFailure {
-      case e => e.printStackTrace()
+    p.onComplete {
+      case Failure(e) => e.printStackTrace()
+      case _ =>
     }
     runAndMonitor(p, exit = true, printResult = false)
   }

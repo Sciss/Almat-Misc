@@ -2,7 +2,7 @@
  *  PhaseCorrelation.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,16 +13,14 @@
 
 package de.sciss.unlike
 
-import java.util
-
 import de.sciss.file._
 import de.sciss.numbers
-import de.sciss.play.json.AutoFormat
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
-import edu.emory.mathcs.jtransforms.fft.DoubleFFT_2D
-import play.api.libs.json.Format
+import de.sciss.transform4s.fft.DoubleFFT_2D
+import play.api.libs.json.{Format, Json}
 
+import java.util
 import scala.concurrent.blocking
 
 object PhaseCorrelation extends ProcessorFactory {
@@ -59,7 +57,7 @@ object PhaseCorrelation extends ProcessorFactory {
   object Product {
     def identity: Product = Product(peak = 1.0)
 
-    implicit val format: Format[Product] = AutoFormat[Product]
+    implicit val format: Format[Product] = Json.format[Product] //  AutoFormat[Product]
   }
   case class Product(translateX: Double = 0.0, translateY: Double = 0.0, rotate: Double = 0.0, scale: Double = 1.0,
                      peak: Double) {
@@ -79,7 +77,7 @@ object PhaseCorrelation extends ProcessorFactory {
 
   /** @param image  as returned by `prepareImage`. */
   def prepareFFT(image: Image): DoubleFFT_2D =
-    new DoubleFFT_2D(/* rows = */ image.height, /* columns = */ image.width)
+    DoubleFFT_2D(/* rows = */ image.height, /* columns = */ image.width)
 
   /** @param image  as returned by `prepareImage`
     * @param fft    as returned by `prepareFFT`

@@ -2,7 +2,7 @@
  *  ImageFormat.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,11 +13,11 @@
 
 package de.sciss.unlike
 
+import de.sciss.file.File
+
 import java.awt.image.BufferedImage
 import java.io.{FileOutputStream, OutputStream}
-import javax.imageio.{IIOImage, ImageWriteParam, ImageIO}
-
-import de.sciss.file.File
+import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
 
 object ImageFormat {
   case class JPG(quality: Int = 95) extends ImageFormat {

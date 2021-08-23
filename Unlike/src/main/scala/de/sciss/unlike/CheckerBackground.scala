@@ -2,7 +2,7 @@
  *  CheckerBackground.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -15,7 +15,6 @@ package de.sciss.unlike
 
 import java.awt.image.BufferedImage
 import java.awt.{Dimension, Graphics2D, Paint, Rectangle, TexturePaint}
-
 import scala.swing.Component
 
 class CheckerBackground(sizeH: Int = 32)

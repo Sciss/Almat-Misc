@@ -2,7 +2,7 @@
  *  RenderVideoMotion.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -13,16 +13,15 @@
 
 package de.sciss.unlike
 
-import java.awt.geom.AffineTransform
-import java.awt.{RenderingHints, Color}
-import java.awt.image.{BufferedImageOp, BufferedImage}
-import javax.imageio.ImageIO
-
 import de.sciss.file._
 import de.sciss.numbers
 import de.sciss.processor.impl.ProcessorImpl
-import de.sciss.processor.{ProcessorLike, ProcessorFactory}
+import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 
+import java.awt.geom.AffineTransform
+import java.awt.image.{BufferedImage, BufferedImageOp}
+import java.awt.{Color, RenderingHints}
+import javax.imageio.ImageIO
 import scala.annotation.tailrec
 import scala.concurrent.blocking
 
@@ -89,8 +88,8 @@ object RenderVideoMotion extends ProcessorFactory {
               val wPeak = weight(ab.peak, bc.peak)
               if (wPeak < ac.peak) {
                 import ab.{translateX => abx, translateY => aby}
-                import bc.{translateX => bcx, translateY => bcy}
                 import ac.{translateX => acx, translateY => acy}
+                import bc.{translateX => bcx, translateY => bcy}
                 val p1x = abx + bcx
                 val p1y = aby + bcy
                 val xInside = abx >= 0 && abx <= p1x
@@ -101,8 +100,8 @@ object RenderVideoMotion extends ProcessorFactory {
                 // - fall back to `else` case (do not exchange transforms at all)
                 if (xInside && yInside) {
                   import numbers.Implicits._
-                  val p2x = /* if (xInside) */ abx.linlin(0, p1x, 0, acx) // else abx
-                  val p2y = /* if (yInside) */ aby.linlin(0, p1y, 0, acy) // else aby
+                  val p2x = /* if (xInside) */ abx.linLin(0, p1x, 0, acx) // else abx
+                  val p2y = /* if (yInside) */ aby.linLin(0, p1y, 0, acy) // else aby
                   val p3x = acx - p2x
                   val p3y = acy - p2y
                   val abT = ab.copy(translateX = p2x, translateY = p2y)
@@ -174,8 +173,8 @@ object RenderVideoMotion extends ProcessorFactory {
 
           transforms = transforms.zipWithIndex.map { case (in, idx) =>
             import numbers.Implicits._
-            val offX = totTx * idx.linlin(0, numFramesM, 0, -1)
-            val offY = totTy * idx.linlin(0, numFramesM, 0, -1)
+            val offX = totTx * idx.linLin(0, numFramesM, 0, -1)
+            val offY = totTy * idx.linLin(0, numFramesM, 0, -1)
             in.copy(translateX = in.translateX + offX,
                     translateY = in.translateY + offY)
           }
@@ -196,7 +195,7 @@ object RenderVideoMotion extends ProcessorFactory {
       if (verbose)
         println(f"mean ($meanTx%1.2f, $meanTy%1.2f), min ($minTx%1.2f, $minTy%1.2f), max ($maxTx%1.2f, $maxTy%1.2f)")
 
-      import Missing.{Truncate, Fill}
+      import Missing.{Fill, Truncate}
 
       val (dx, dy, dw, dh, bg) = missing match {
         case Truncate =>

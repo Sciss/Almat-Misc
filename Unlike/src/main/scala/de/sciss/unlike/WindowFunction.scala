@@ -2,7 +2,7 @@
  *  WindowFunction.scala
  *  (Unlike)
  *
- *  Copyright (c) 2015-2018 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2015-2021 Hanns Holger Rutz. All rights reserved.
  *
  *	This software is published under the GNU General Public License v2+
  *
@@ -85,10 +85,10 @@ object WindowFunction {
     }
   }
 
-  val Kaiser4 = Kaiser(4.0)
-  val Kaiser5 = Kaiser(5.0)
-  val Kaiser6 = Kaiser(6.0)
-  val Kaiser8 = Kaiser(8.0)
+  val Kaiser4: Kaiser = Kaiser(4.0)
+  val Kaiser5: Kaiser = Kaiser(5.0)
+  val Kaiser6: Kaiser = Kaiser(6.0)
+  val Kaiser8: Kaiser = Kaiser(8.0)
 
   case object Rectangle extends Parameterless {
     val id = 3
@@ -149,7 +149,7 @@ object WindowFunction {
 }
 
 sealed trait WindowFunction {
-  _: Product =>
+  this: Product =>
 
   def id: Int
 
