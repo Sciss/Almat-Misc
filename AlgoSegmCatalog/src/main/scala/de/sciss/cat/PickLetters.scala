@@ -7,26 +7,17 @@ import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import scala.swing.event.{Key, KeyPressed, MouseDragged, MouseEvent, MouseMoved, MousePressed, MouseReleased}
 import scala.swing.{Component, Dimension, Graphics2D, MainFrame, Swing}
+import Param.*
 
 object PickLetters:
-  val gridSize    = 3
-  val layerSize   = 3
-  val layerUnique = 2
-  val pages       = 4
-  val numLetters  = gridSize * gridSize * layerUnique * pages   // 72
-  val widthIn     = 3744
-  val heightIn    = 2720
-  val numImagesIn = 1000
   val scaleDown   = 4
   val widthC      = widthIn/scaleDown
   val heightC     = heightIn/scaleDown
-  val rectW       = 640
-  val rectH       = 1280
   val rectWC      = rectW/scaleDown
   val rectHC      = rectH/scaleDown
 
   val baseDir     = file("/data/projects/Almat/events/xcoax2020/postcard/composed")
-  
+
   def main(args: Array[String]): Unit =
     println(s"numLetters = $numLetters")
     Swing.onEDT(run())

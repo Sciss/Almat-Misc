@@ -6,3 +6,6 @@ project/boot/
 .idea_modules/
 _site/
 /.bsp/
+je.config.csv
+je.stat.csv
+
